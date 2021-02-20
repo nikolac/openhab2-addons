@@ -80,6 +80,7 @@
     <bnd.importpackage/>
     <bnd.exportpackage/>
     <bnd.fixupmessages/>
+    <!--suppress UnresolvedMavenProperty -->
     <bnd.includeresource>-${.}/NOTICE, -${.}/*.xsd</bnd.includeresource>
 
     <feature.directory>src/main/feature/feature.xml</feature.directory>
