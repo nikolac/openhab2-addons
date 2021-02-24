@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +28,12 @@ import org.slf4j.LoggerFactory;
  *
  * @param <T> the EventListener to register
  */
+@NonNullByDefault
 public class EventRegister<T extends EventListener> implements Register<T> {
 
-    private Logger logger = LoggerFactory.getLogger(EventRegister.class);
+    private final Logger logger = LoggerFactory.getLogger(EventRegister.class);
 
-    private List<T> registeredEventListener;
+    private final List<T> registeredEventListener;
 
     public EventRegister() {
         registeredEventListener = new LinkedList<>();
@@ -39,7 +41,7 @@ public class EventRegister<T extends EventListener> implements Register<T> {
 
     @Override
     public boolean isEventListenerRegisterd(T listener) {
-        boolean ret = false;
+        boolean ret;
 
         synchronized (registeredEventListener) {
             ret = registeredEventListener.contains(listener);
@@ -49,9 +51,6 @@ public class EventRegister<T extends EventListener> implements Register<T> {
 
     @Override
     public void addEventListener(T listener) {
-        if (listener == null) {
-            return;
-        }
 
         synchronized (registeredEventListener) {
             if (!isEventListenerRegisterd(listener)) {
@@ -65,9 +64,6 @@ public class EventRegister<T extends EventListener> implements Register<T> {
 
     @Override
     public void removeEventListener(T listener) {
-        if (listener == null) {
-            return;
-        }
 
         // Thread-safe remove
         synchronized (registeredEventListener) {

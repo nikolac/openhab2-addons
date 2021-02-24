@@ -16,6 +16,8 @@ import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 
 import java.util.Hashtable;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.discovery.MySensorsDiscoveryService;
 import org.openhab.binding.mysensors.handler.MySensorsBridgeHandler;
 import org.openhab.binding.mysensors.handler.MySensorsThingHandler;
@@ -39,10 +41,11 @@ import org.slf4j.LoggerFactory;
  *
  * @author Tim Oberföll - Initial contribution
  */
+@NonNullByDefault
 @Component(service = { ThingHandlerFactory.class })
 public class MySensorsHandlerFactory extends BaseThingHandlerFactory {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final SerialPortManager serialPortManager;
 
@@ -57,10 +60,15 @@ public class MySensorsHandlerFactory extends BaseThingHandlerFactory {
     }
 
     @Override
-    protected ThingHandler createHandler(Thing thing) {
+    @Nullable
+    protected ThingHandler createHandler(@Nullable Thing thing) {
+        if (thing == null) {
+            throw new IllegalArgumentException("Thing is null, cannot create handler");
+        }
         logger.trace("Creating handler for thing: {}", thing.getUID());
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
-        ThingHandler handler = null;
+        @Nullable
+        ThingHandler handler;
 
         if (SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID)) {
             handler = new MySensorsThingHandler(thing);
@@ -71,6 +79,7 @@ public class MySensorsHandlerFactory extends BaseThingHandlerFactory {
             handler = bridgeHandler;
         } else {
             logger.error("Thing {} cannot be configured, is this thing supported by the binding?", thingTypeUID);
+            throw new IllegalArgumentException("Thing type is not supported");
         }
 
         return handler;
@@ -79,7 +88,6 @@ public class MySensorsHandlerFactory extends BaseThingHandlerFactory {
     private synchronized void registerDiscoveryService(MySensorsBridgeHandler bridgeHandler) {
         MySensorsDiscoveryService discoveryService = new MySensorsDiscoveryService(bridgeHandler);
         bridgeHandler.setDiscoveryService(discoveryService);
-        bundleContext.registerService(DiscoveryService.class.getName(), discoveryService,
-                new Hashtable<String, Object>());
+        bundleContext.registerService(DiscoveryService.class.getName(), discoveryService, new Hashtable<>());
     }
 }

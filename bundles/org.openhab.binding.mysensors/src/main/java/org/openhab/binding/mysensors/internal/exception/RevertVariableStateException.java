@@ -12,12 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception is thrown if an error occures while trying to revert the status of a thing.
  *
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class RevertVariableStateException extends Exception {
 
     private static final long serialVersionUID = 1419826736891461536L;

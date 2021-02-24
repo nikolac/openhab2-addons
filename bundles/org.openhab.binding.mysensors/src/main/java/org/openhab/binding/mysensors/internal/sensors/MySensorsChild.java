@@ -16,57 +16,15 @@ import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.Mergeable;
 import org.openhab.binding.mysensors.internal.exception.MergeException;
 import org.openhab.binding.mysensors.internal.exception.NoContentException;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSAirQuality;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSArduinoNode;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSArduinoRepeaterNode;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSBaro;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSBinary;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSColorSensor;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSCover;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSCustom;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSDimmer;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSDistance;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSDoor;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSDust;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSGas;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSGps;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSHeater;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSHum;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSHvac;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSInfo;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSIr;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSLightLevel;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSLock;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSMoisture;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSMotion;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSMultimeter;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSPower;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSRain;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSRgbLight;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSRgbwLight;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSSceneController;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSSmoke;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSSound;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSSprinkler;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSTemp;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSUv;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSVibration;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSWater;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSWaterLeak;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSWaterQuality;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSWeight;
-import org.openhab.binding.mysensors.internal.sensors.child.MySensorsChildSWind;
-import org.openhab.binding.mysensors.internal.sensors.variable.MySensorsVariableVVar1;
-import org.openhab.binding.mysensors.internal.sensors.variable.MySensorsVariableVVar2;
-import org.openhab.binding.mysensors.internal.sensors.variable.MySensorsVariableVVar3;
-import org.openhab.binding.mysensors.internal.sensors.variable.MySensorsVariableVVar4;
-import org.openhab.binding.mysensors.internal.sensors.variable.MySensorsVariableVVar5;
+import org.openhab.binding.mysensors.internal.sensors.child.*;
+import org.openhab.binding.mysensors.internal.sensors.variable.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,18 +35,19 @@ import org.slf4j.LoggerFactory;
  * @author Andrea Cioni - Initial contribution
  *
  */
+@NonNullByDefault
 public abstract class MySensorsChild implements Mergeable {
 
     // Reserved ids
     public static final int MYSENSORS_CHILD_ID_RESERVED_0 = 0;
     public static final int MYSENSORS_CHILD_ID_RESERVED_255 = 255;
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * Used to build child from presentation code
      */
-    public static final Map<MySensorsMessageSubType, Class<? extends MySensorsChild>> PRESENTATION_TO_CHILD_CLASS = new HashMap<MySensorsMessageSubType, Class<? extends MySensorsChild>>() {
+    public static final Map<MySensorsMessageSubType, Class<? extends MySensorsChild>> PRESENTATION_TO_CHILD_CLASS = new HashMap<>() {
 
         private static final long serialVersionUID = -3479184996747993491L;
 
@@ -138,22 +97,22 @@ public abstract class MySensorsChild implements Mergeable {
 
     private final int childId;
 
-    private Optional<MySensorsChildConfig> childConfig;
+    private MySensorsChildConfig childConfig;
 
-    private Map<MySensorsMessageSubType, MySensorsVariable> variableMap = null;
+    private final Map<MySensorsMessageSubType, MySensorsVariable> variableMap;
 
-    private Date lastUpdate = null;
+    private Date lastUpdate;
 
-    private MySensorsMessageSubType presentationCode;
+    private @Nullable MySensorsMessageSubType presentationCode;
 
     public MySensorsChild(int childId) {
         if (!isValidChildId(childId)) {
             throw new IllegalArgumentException("Invalid child id supplied: " + childId);
         }
         this.childId = childId;
-        variableMap = new HashMap<MySensorsMessageSubType, MySensorsVariable>();
+        variableMap = new HashMap<>();
         lastUpdate = new Date(0);
-        childConfig = Optional.empty();
+        childConfig = new MySensorsChildConfig();
         addCommonVariables();
     }
 
@@ -162,14 +121,10 @@ public abstract class MySensorsChild implements Mergeable {
             throw new IllegalArgumentException("Invalid child id supplied: " + childId);
         }
 
-        if (config == null) {
-            throw new IllegalArgumentException("Invalid config supplied for child: " + childId);
-        }
-
         this.childId = childId;
-        variableMap = new HashMap<MySensorsMessageSubType, MySensorsVariable>();
+        variableMap = new HashMap<>();
         lastUpdate = new Date(0);
-        childConfig = Optional.of(config);
+        childConfig = config;
         addCommonVariables();
     }
 
@@ -180,7 +135,7 @@ public abstract class MySensorsChild implements Mergeable {
      *
      * @throws NoContentException if var is null
      */
-    public void addVariable(MySensorsVariable var) throws NoContentException {
+    public void addVariable(@Nullable MySensorsVariable var) throws NoContentException {
         if (var == null) {
             throw new NoContentException("Cannot add a null variable");
         }
@@ -195,6 +150,7 @@ public abstract class MySensorsChild implements Mergeable {
      * @param subType the integer of the subtype
      * @return one MySensorsVariable if present, otherwise null
      */
+    @Nullable
     public MySensorsVariable getVariable(MySensorsMessageSubType subType) {
         synchronized (variableMap) {
             return variableMap.get(subType);
@@ -216,9 +172,7 @@ public abstract class MySensorsChild implements Mergeable {
      * @return the date represent when the child has received and update from network. Default value is 1970/01/01-00:00
      */
     public Date getLastUpdate() {
-        synchronized (lastUpdate) {
-            return lastUpdate;
-        }
+        return lastUpdate;
     }
 
     /**
@@ -227,11 +181,10 @@ public abstract class MySensorsChild implements Mergeable {
      * @param childLastUpdate new date represents when child has received an update from network
      */
     public void setLastUpdate(Date childLastUpdate) {
-        synchronized (this.lastUpdate) {
-            this.lastUpdate = childLastUpdate;
-        }
+        this.lastUpdate = childLastUpdate;
     }
 
+    @Nullable
     public MySensorsMessageSubType getPresentationCode() {
         return presentationCode;
     }
@@ -240,28 +193,22 @@ public abstract class MySensorsChild implements Mergeable {
         this.presentationCode = presentationCode;
     }
 
-    public Optional<MySensorsChildConfig> getChildConfig() {
+    public MySensorsChildConfig getChildConfig() {
         return childConfig;
     }
 
     public void setChildConfig(MySensorsChildConfig childConfig) {
-        this.childConfig = Optional.of(childConfig);
+        this.childConfig = childConfig;
     }
 
     @Override
     public void merge(Object o) throws MergeException {
-        if (o == null || !(o instanceof MySensorsChild)) {
-            throw new MergeException("Invalid object to merge");
+        if (!(o instanceof MySensorsChild)) {
+            throw new MergeException("Cannot merge non-mysensors child");
         }
 
         MySensorsChild child = (MySensorsChild) o;
-
-        // Merge configurations
-        if (child.childConfig.isPresent() && !childConfig.isPresent()) {
-            childConfig = child.childConfig;
-        } else if (child.childConfig.isPresent() && childConfig.isPresent()) {
-            childConfig.get().merge(child.childConfig.get());
-        }
+        childConfig.merge(child.childConfig);
     }
 
     private void addCommonVariables() {
@@ -294,7 +241,9 @@ public abstract class MySensorsChild implements Mergeable {
      *
      * @return an instance of a child
      */
+    @Nullable
     public static MySensorsChild fromPresentation(MySensorsMessageSubType presentationCode, int childId) {
+        @Nullable
         MySensorsChild ret;
 
         if (PRESENTATION_TO_CHILD_CLASS.containsKey(presentationCode)) {
@@ -320,13 +269,13 @@ public abstract class MySensorsChild implements Mergeable {
         final int prime = 31;
         int result = 1;
         result = prime * result + childId;
-        result = prime * result + presentationCode.getId();
-        result = prime * result + ((variableMap == null) ? 0 : variableMap.hashCode());
+        result = prime * result + (presentationCode != null ? presentationCode.getId() : 0);
+        result = prime * result + (variableMap.hashCode());
         return result;
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -343,14 +292,7 @@ public abstract class MySensorsChild implements Mergeable {
         if (presentationCode != other.presentationCode) {
             return false;
         }
-        if (variableMap == null) {
-            if (other.variableMap != null) {
-                return false;
-            }
-        } else if (!variableMap.equals(other.variableMap)) {
-            return false;
-        }
-        return true;
+        return variableMap.equals(other.variableMap);
     }
 
     @Override

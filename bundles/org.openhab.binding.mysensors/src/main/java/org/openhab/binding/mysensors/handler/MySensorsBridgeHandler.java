@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.config.MySensorsBridgeConfiguration;
 import org.openhab.binding.mysensors.discovery.MySensorsDiscoveryService;
 import org.openhab.binding.mysensors.factory.MySensorsCacheFactory;
@@ -49,22 +51,22 @@ import com.google.gson.reflect.TypeToken;
  * @author Tim Oberföll - Initial contribution
  *
  */
-
+@NonNullByDefault
 public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySensorsGatewayEventListener {
 
-    private Logger logger = LoggerFactory.getLogger(MySensorsBridgeHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(MySensorsBridgeHandler.class);
 
     // Gateway instance
-    private MySensorsGateway myGateway;
+    private @Nullable MySensorsGateway myGateway;
 
     // Configuration from thing file
     private MySensorsBridgeConfiguration myBridgeConfiguration;
 
-    private MySensorsCacheFactory cacheFactory;
+    private final MySensorsCacheFactory cacheFactory;
 
-    private MySensorsDiscoveryService discoveryService;
+    private @Nullable MySensorsDiscoveryService discoveryService;
 
-    private SerialPortManager serialPortManager;
+    private final SerialPortManager serialPortManager;
 
     public void setDiscoveryService(MySensorsDiscoveryService discoveryService) {
         this.discoveryService = discoveryService;
@@ -74,6 +76,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
         super(bridge);
         cacheFactory = new MySensorsCacheFactory(OpenHAB.getUserDataFolder());
         this.serialPortManager = serialPortManager;
+        myBridgeConfiguration = new MySensorsBridgeConfiguration();
     }
 
     @Override
@@ -82,7 +85,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
 
         myBridgeConfiguration = getConfigAs(MySensorsBridgeConfiguration.class);
 
-        myGateway = new MySensorsGateway(loadCacheFile(), this.serialPortManager);
+        myGateway = new MySensorsGateway(loadCacheFile(), serialPortManager);
 
         if (myGateway.setup(openhabToMySensorsGatewayConfig(myBridgeConfiguration, getThing().getThingTypeUID()))) {
             myGateway.startup();
@@ -90,7 +93,8 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
             myGateway.addEventListener(this);
 
             logger.debug("Initialization of the MySensors bridge DONE!");
-            discoveryService.activate();
+            if (discoveryService != null)
+                discoveryService.activate();
         } else {
             logger.error("Failed to initialize MySensors bridge");
         }
@@ -113,26 +117,18 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
     }
 
     /**
-     * Getter for the configuration of the bridge.
-     *
-     * @return Configuration of the MySensors bridge.
-     */
-    public MySensorsBridgeConfiguration getBridgeConfiguration() {
-        return myBridgeConfiguration;
-    }
-
-    /**
      * Getter for the connection to the MySensors bridge / gateway.
      * Used for receiving (register handler) and sending of messages.
      *
      * @return Connection to the MySensors bridge / gateway.
      */
+    @Nullable
     public MySensorsGateway getMySensorsGateway() {
         return myGateway;
     }
 
     @Override
-    public void connectionStatusUpdate(MySensorsAbstractConnection connection, boolean connected) throws Exception {
+    public void connectionStatusUpdate(@Nullable MySensorsAbstractConnection connection, boolean connected) {
         if (connected) {
             updateStatus(ThingStatus.ONLINE);
         } else {
@@ -143,22 +139,25 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
     }
 
     @Override
-    public void nodeIdReservationDone(Integer reservedId) throws Exception {
+    public void nodeIdReservationDone(@Nullable Integer reservedId) {
         updateCacheFile();
     }
 
     @Override
-    public void newNodeDiscovered(MySensorsNode node, MySensorsChild child) throws Exception {
+    public void newNodeDiscovered(@Nullable MySensorsNode node, @Nullable MySensorsChild child) {
         updateCacheFile();
     }
 
     @Override
     public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
-        logger.debug("Configuation update for bridge: {}", configurationParameters);
+        logger.debug("Configuration update for bridge: {}", configurationParameters);
         super.handleConfigurationUpdate(configurationParameters);
     }
 
     private void updateCacheFile() {
+        if (myGateway == null)
+            return;
+
         List<Integer> givenIds = myGateway.getGivenIds();
 
         String cacheFileName = MySensorsCacheFactory.GIVEN_IDS_CACHE_FILE + "_"
@@ -168,18 +167,16 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
     }
 
     private Map<Integer, MySensorsNode> loadCacheFile() {
-        Map<Integer, MySensorsNode> nodes = new HashMap<Integer, MySensorsNode>();
+        Map<Integer, MySensorsNode> nodes = new HashMap<>();
 
         String cacheFileName = MySensorsCacheFactory.GIVEN_IDS_CACHE_FILE + "_"
                 + getThing().getUID().toString().replace(':', '_');
-        List<Integer> givenIds = cacheFactory.readCache(cacheFileName, new ArrayList<Integer>(),
+        List<Integer> givenIds = cacheFactory.readCache(cacheFileName, new ArrayList<>(),
                 new TypeToken<ArrayList<Integer>>() {
                 }.getType());
 
         for (Integer i : givenIds) {
-            if (i != null) {
-                nodes.put(i, new MySensorsNode(i));
-            }
+            nodes.put(i, new MySensorsNode(i));
         }
 
         return nodes;

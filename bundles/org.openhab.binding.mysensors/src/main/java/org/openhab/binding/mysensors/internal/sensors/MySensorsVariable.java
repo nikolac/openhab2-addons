@@ -14,6 +14,8 @@ package org.openhab.binding.mysensors.internal.sensors;
 
 import java.util.Date;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.exception.RevertVariableStateException;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
@@ -25,27 +27,33 @@ import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageS
  * @author Andrea Cioni - Redesign
  *
  */
+@NonNullByDefault
 public abstract class MySensorsVariable {
 
     private final MySensorsMessageSubType type;
 
+    @Nullable
     private String value;
 
+    @Nullable
     private Date lastUpdate;
 
+    @Nullable
     private String oldState;
 
+    @Nullable
     private Date oldLastUpdate;
 
     public MySensorsVariable(MySensorsMessageSubType type) {
         this.type = type;
     }
 
+    @Nullable
     public synchronized String getValue() {
         return value;
     }
 
-    public synchronized void setValue(String value) {
+    public synchronized void setValue(@Nullable String value) {
         oldState = getValue();
         oldLastUpdate = getLastUpdate();
         setLastUpdate(new Date());
@@ -60,11 +68,12 @@ public abstract class MySensorsVariable {
         return type;
     }
 
+    @Nullable
     public synchronized Date getLastUpdate() {
         return lastUpdate;
     }
 
-    public synchronized void setLastUpdate(Date lastupdate) {
+    public synchronized void setLastUpdate(@Nullable Date lastupdate) {
         this.lastUpdate = lastupdate;
     }
 
@@ -93,7 +102,7 @@ public abstract class MySensorsVariable {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -108,13 +117,9 @@ public abstract class MySensorsVariable {
             return false;
         }
         if (value == null) {
-            if (other.value != null) {
-                return false;
-            }
-        } else if (!value.equals(other.value)) {
-            return false;
-        }
-        return true;
+            return other.value == null;
+        } else
+            return value.equals(other.value);
     }
 
     @Override

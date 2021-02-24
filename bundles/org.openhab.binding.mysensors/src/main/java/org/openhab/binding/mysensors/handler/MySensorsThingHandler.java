@@ -12,12 +12,8 @@
  */
 package org.openhab.binding.mysensors.handler;
 
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Map;
-
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.MySensorsBindingConstants;
 import org.openhab.binding.mysensors.config.MySensorsSensorConfiguration;
 import org.openhab.binding.mysensors.converter.MySensorsRGBWPureTypeConverter;
@@ -30,22 +26,9 @@ import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageAck;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageType;
-import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
-import org.openhab.binding.mysensors.internal.sensors.MySensorsChildConfig;
-import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
-import org.openhab.binding.mysensors.internal.sensors.MySensorsNodeConfig;
-import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
-import org.openhab.core.library.types.DateTimeType;
-import org.openhab.core.library.types.DecimalType;
-import org.openhab.core.library.types.HSBType;
-import org.openhab.core.library.types.OnOffType;
-import org.openhab.core.library.types.StringType;
-import org.openhab.core.thing.Bridge;
-import org.openhab.core.thing.ChannelUID;
-import org.openhab.core.thing.Thing;
-import org.openhab.core.thing.ThingStatus;
-import org.openhab.core.thing.ThingStatusDetail;
-import org.openhab.core.thing.ThingStatusInfo;
+import org.openhab.binding.mysensors.internal.sensors.*;
+import org.openhab.core.library.types.*;
+import org.openhab.core.thing.*;
 import org.openhab.core.thing.binding.BaseThingHandler;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
@@ -53,21 +36,28 @@ import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Map;
+
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
+
 /**
  * The {@link MySensorsThingHandler} is responsible for handling commands, which are
  * sent to one of the channels and messages received via the MySensors network.
  *
  * @author Tim Oberföll - Initial contribution
  */
+@NonNullByDefault
 public class MySensorsThingHandler extends BaseThingHandler implements MySensorsGatewayEventListener {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private MySensorsSensorConfiguration configuration;
+    private MySensorsSensorConfiguration configuration = getConfigAs(MySensorsSensorConfiguration.class);
 
-    private DateTimeType lastUpdate;
+    private @Nullable DateTimeType lastUpdate;
 
-    private MySensorsGateway myGateway;
+    private @Nullable MySensorsGateway myGateway;
 
     public MySensorsThingHandler(Thing thing) {
         super(thing);
@@ -75,22 +65,28 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
 
     @Override
     public void initialize() {
-        configuration = getConfigAs(MySensorsSensorConfiguration.class);
-
         logger.debug("Configuration: {}", configuration.toString());
+        @Nullable
+        MySensorsBridgeHandler bridgeHandler = getBridgeHandler();
+        myGateway = (bridgeHandler != null) ? bridgeHandler.getMySensorsGateway() : null;
 
-        myGateway = getBridgeHandler().getMySensorsGateway();
-        addIntoGateway(getThing(), configuration);
-
-        registerListeners();
-
-        updateStatus(ThingStatus.ONLINE);
+        if (myGateway != null) {
+            addIntoGateway(getThing(), configuration);
+            registerListeners();
+            updateStatus(ThingStatus.ONLINE);
+        } else {
+            logger.warn("Attempted to initialize a Thing Handler with a null gateway: {}", configuration.toString());
+        }
     }
 
     @Override
     public void dispose() {
-        myGateway.removeEventListener(this);
-        myGateway.removeNode(configuration.nodeId);
+        if (myGateway != null) {
+            myGateway.removeEventListener(this);
+            myGateway.removeNode(configuration.nodeId);
+        } else {
+            logger.warn("Attempted to dispose a null MySensors gateway");
+        }
         super.dispose();
     }
 
@@ -101,8 +97,10 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
         if (bridgeStatusInfo.getStatus() == ThingStatus.ONLINE || bridgeStatusInfo.getStatus() == ThingStatus.OFFLINE) {
             if (bridgeStatusInfo.getStatus() == ThingStatus.ONLINE) {
                 registerListeners();
-            } else {
+            } else if (myGateway != null) {
                 myGateway.removeEventListener(this);
+            } else {
+                logger.warn("Attempted to remove gateway listener on null gateway {}", configuration.toString());
             }
 
             // the node has the same status of the bridge
@@ -112,13 +110,18 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
 
     @Override
     public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
-        logger.debug("Configuation update for thing {}-{}: {}", configuration.nodeId, configuration.childId,
+        logger.debug("Configuration update for thing {}-{}: {}", configuration.nodeId, configuration.childId,
                 configurationParameters);
         super.handleConfigurationUpdate(configurationParameters);
     }
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        if (myGateway == null) {
+            logger.warn("Attempted to handle command for null gateway: {}", configuration.toString());
+            return;
+        }
+
         logger.trace("Command {} received for channel uid {}", command, channelUID);
 
         // We don't handle refresh commands yet
@@ -134,6 +137,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
                 StringType stringTypeMessage = (StringType) command;
                 try {
                     MySensorsMessage msg = MySensorsMessage.parse(stringTypeMessage.toString());
+
                     myGateway.sendMessage(msg);
                 } catch (ParseException e) {
                     logger.error("Invalid message to send", e);
@@ -207,32 +211,59 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
     }
 
     @Override
-    public void messageReceived(MySensorsMessage message) throws Exception {
-        handleIncomingMessageEvent(message);
+    public void messageReceived(@Nullable MySensorsMessage message) {
+        if (message != null) {
+            handleIncomingMessageEvent(message);
+        } else {
+            logger.warn("Cannot handle incoming null message on thing: {}", thing.getUID());
+        }
     }
 
     @Override
-    public void sensorUpdateEvent(MySensorsNode node, MySensorsChild child, MySensorsVariable var,
-            MySensorsNodeUpdateEventType eventType) {
+    public void sensorUpdateEvent(@Nullable MySensorsNode node, @Nullable MySensorsChild child,
+            @Nullable MySensorsVariable var, @Nullable MySensorsNodeUpdateEventType eventType) {
+        if (eventType == null) {
+            logger.warn("Sensor Update Event is triggered but eventType is null, skipping");
+            return;
+        }
+
         switch (eventType) {
             case UPDATE:
             case REVERT:
+                if (node == null) {
+                    logger.warn("Tried to REVERT sensor update on null node");
+                    return;
+                }
+
+                if (child == null) {
+                    logger.warn("Cannot associate REVERT event to null child");
+                    return;
+                }
+
+                if (var == null) {
+                    logger.warn("Cannot update REVERT event with null variable");
+                    return;
+                }
                 if ((node.getNodeId() == configuration.nodeId) && (child.getChildId() == configuration.childId)) {
                     handleChildUpdateEvent(var);
                     updateLastUpdate(node, eventType == MySensorsNodeUpdateEventType.REVERT);
                 }
                 break;
             case BATTERY:
+                if (node == null) {
+                    logger.warn("Tried to BATTERY update on null node");
+                    return;
+                }
                 if (node.getNodeId() == configuration.nodeId) {
                     handleBatteryUpdateEvent(node);
-                    updateLastUpdate(node, eventType == MySensorsNodeUpdateEventType.REVERT);
+                    updateLastUpdate(node, false);
                 }
                 break;
         }
     }
 
     @Override
-    public void connectionStatusUpdate(MySensorsAbstractConnection connection, boolean connected) throws Exception {
+    public void connectionStatusUpdate(@Nullable MySensorsAbstractConnection connection, boolean connected) {
         if (!connected) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
         } else {
@@ -241,7 +272,11 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
     }
 
     @Override
-    public void nodeReachStatusChanged(MySensorsNode node, boolean reach) {
+    public void nodeReachStatusChanged(@Nullable MySensorsNode node, boolean reach) {
+        if (node == null) {
+            logger.warn("Cannot handle reach state change on null node, thing: {}", thing.getUID());
+            return;
+        }
         if (node.getNodeId() == configuration.nodeId) {
             if (!reach) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
@@ -279,8 +314,10 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
      *
      * @return BridgeHandler of the bridge/gateway to the MySensors network
      */
-    private synchronized MySensorsBridgeHandler getBridgeHandler() {
+    private synchronized @Nullable MySensorsBridgeHandler getBridgeHandler() {
+        @Nullable
         Bridge bridge = getBridge();
+        @Nullable
         MySensorsBridgeHandler myBridgeHandler = null;
         if (bridge != null) {
             myBridgeHandler = (MySensorsBridgeHandler) bridge.getHandler();
@@ -300,7 +337,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
         String channelName = getChannelNameFromVar(var);
         State newState = loadAdapterForChannelType(channelName).stateFromChannel(var);
         logger.debug("Updating channel: {}({}) value to: {}", channelName, var.getType(), newState);
-        if (myGateway.getNode(configuration.nodeId).getChild(configuration.childId)
+        if (myGateway != null && myGateway.getNode(configuration.nodeId).getChild(configuration.childId)
                 .getPresentationCode() == MySensorsMessageSubType.S_COVER) {
             updateState(CHANNEL_COVER, newState);
         }
@@ -317,10 +354,11 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
         if (getThing().getThingTypeUID() == MySensorsBindingConstants.THING_TYPE_COVER) {
             return MySensorsBindingConstants.CHANNEL_COVER;
         } else {
-            return CHANNEL_MAP.get(var.getType());
+            return CHANNEL_MAP.getOrDefault(var.getType(), "");
         }
     }
 
+    @Nullable
     private MySensorsTypeConverter loadAdapterForChannelType(String channelName) {
         return TYPE_MAP.get(channelName);
     }
@@ -336,12 +374,12 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
         if (configuration.nodeId == MYSENSORS_NODE_ID_ALL_KNOWING
                 && configuration.childId == MYSENSORS_CHILD_ID_ALL_KNOWING) {
             updateState(CHANNEL_MYSENSORS_MESSAGE,
-                    new StringType(MySensorsMessage.generateAPIString(msg).replaceAll("(\\r|\\n)", "")));
+                    new StringType(MySensorsMessage.generateAPIString(msg).replaceAll("([\\r\\n])", "")));
         }
     }
 
     private void registerListeners() {
-        if (!myGateway.isEventListenerRegisterd(this)) {
+        if (myGateway != null && !myGateway.isEventListenerRegistered(this)) {
             logger.debug("Event listener for node {}-{} not registered yet, registering...", configuration.nodeId,
                     configuration.childId);
             myGateway.addEventListener(this);
@@ -349,15 +387,21 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
     }
 
     private void addIntoGateway(Thing thing, MySensorsSensorConfiguration configuration) {
+        @Nullable
         MySensorsNode node = generateNodeFromThing(thing, configuration);
-        if (node != null) {
+        if (node == null) {
+            logger.error("Attempted to add null node into gateway");
+            return;
+        }
+        if (myGateway != null) {
             myGateway.addNode(node, true);
         } else {
-            logger.error("Failed to build sensor for thing: {}", thing.getUID());
+            logger.error("Attempted to add thing into null gateway");
         }
     }
 
-    private MySensorsNode generateNodeFromThing(Thing t, MySensorsSensorConfiguration configuration) {
+    private @Nullable MySensorsNode generateNodeFromThing(Thing t, MySensorsSensorConfiguration configuration) {
+        @Nullable
         MySensorsNode node = null;
 
         try {
@@ -377,8 +421,8 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
                     node.addChild(child);
                 }
             } else {
-                logger.error("Error on building sensors from thing: {}, node: {}, child: {}, presentation: {}",
-                        t.getUID(), nodeId, childId, presentation);
+                logger.error("Error on building sensors from thing: {}, node: {}, child: {}", t.getUID(), nodeId,
+                        childId);
             }
         } catch (Exception e) {
             logger.error("Failing on create node/child for thing {}", thing.getUID(), e);

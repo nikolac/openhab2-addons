@@ -12,7 +12,8 @@
  */
 package org.openhab.binding.mysensors.converter;
 
-import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.MySensorsBindingConstants;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
@@ -25,6 +26,7 @@ import org.openhab.core.types.State;
  * @author Andrea Cioni - Initial contribution
  *
  */
+@NonNullByDefault
 public interface MySensorsTypeConverter {
 
     /**
@@ -33,8 +35,13 @@ public interface MySensorsTypeConverter {
      * @param value non-null that should be converted
      * @return the state from a variable
      */
-    public default State stateFromChannel(@NonNull MySensorsVariable value) {
-        return fromString(value.getValue());
+    default State stateFromChannel(MySensorsVariable value) {
+        @Nullable
+        String actualValue = value.getValue();
+        if (actualValue == null) {
+            throw new IllegalArgumentException("Cannot get State from null Channel value");
+        }
+        return fromString(actualValue);
     }
 
     /**
@@ -43,7 +50,7 @@ public interface MySensorsTypeConverter {
      * @param string the payload to process
      * @return an equivalent state for OpenHab
      */
-    public State fromString(@NonNull String string);
+    State fromString(String string);
 
     /**
      * Get a string from an OpenHab command.
@@ -51,7 +58,7 @@ public interface MySensorsTypeConverter {
      * @param command, the command from OpenHab environment
      * @return the payload string
      */
-    public default String fromCommand(@NonNull Command command) {
+    default String fromCommand(Command command) {
         return command.toString();
     }
 
@@ -63,7 +70,13 @@ public interface MySensorsTypeConverter {
      * @param command the command received
      * @return the variable number
      */
-    default MySensorsMessageSubType typeFromChannelCommand(@NonNull String channel, @NonNull Command command) {
-        return MySensorsBindingConstants.INVERSE_CHANNEL_MAP.get(channel);
+    default MySensorsMessageSubType typeFromChannelCommand(String channel, Command command) {
+        @Nullable
+        MySensorsMessageSubType subType = MySensorsBindingConstants.INVERSE_CHANNEL_MAP.get(channel);
+        if (subType != null) {
+            return subType;
+        } else {
+            throw new IllegalArgumentException("Channel not found " + channel);
+        }
     }
 }

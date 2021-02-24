@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.mysensors.internal.sensors;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.binding.mysensors.internal.Mergeable;
 import org.openhab.binding.mysensors.internal.exception.MergeException;
 
@@ -22,6 +23,7 @@ import org.openhab.binding.mysensors.internal.exception.MergeException;
  * @author Andrea Cioni - Redesign
  *
  */
+@NonNullByDefault
 public class MySensorsChildConfig implements Mergeable {
 
     private boolean requestAck;
@@ -39,10 +41,6 @@ public class MySensorsChildConfig implements Mergeable {
 
     public void setSmartSleep(boolean smartSleep) {
         this.smartSleep = smartSleep;
-    }
-
-    public int getExpectUpdateTimeout() {
-        return expectUpdateTimeout;
     }
 
     public void setExpectUpdateTimeout(int expectUpdateTimeout) {
@@ -67,7 +65,7 @@ public class MySensorsChildConfig implements Mergeable {
 
     @Override
     public void merge(Object o) throws MergeException {
-        if (o == null || !(o instanceof MySensorsChildConfig)) {
+        if (!(o instanceof MySensorsChildConfig)) {
             throw new MergeException("Invalid object to merge");
         }
 

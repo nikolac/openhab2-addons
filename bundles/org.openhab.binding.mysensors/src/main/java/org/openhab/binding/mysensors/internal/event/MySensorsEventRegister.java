@@ -12,8 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.event;
 
-import java.util.List;
-
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
@@ -22,6 +22,8 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * Event register is used to notify registered things about updates
  * and messages received by the gateway.
@@ -29,11 +31,12 @@ import org.slf4j.LoggerFactory;
  * @author Andrea Cioni - Initial contribution
  *
  */
+@NonNullByDefault
 public class MySensorsEventRegister extends EventRegister<MySensorsGatewayEventListener> {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private EventRegister<MySensorsGatewayEventListener> eventRegister;
+    private final EventRegister<MySensorsGatewayEventListener> eventRegister;
 
     public MySensorsEventRegister() {
         eventRegister = new EventRegister<>();
@@ -92,7 +95,7 @@ public class MySensorsEventRegister extends EventRegister<MySensorsGatewayEventL
         }
     }
 
-    public void notifyNewNodeDiscovered(MySensorsNode node, MySensorsChild child) {
+    public void notifyNewNodeDiscovered(MySensorsNode node, @Nullable MySensorsChild child) {
         synchronized (eventRegister.getEventListeners()) {
             eventRegister.getEventListeners().forEach((MySensorsGatewayEventListener listener) -> {
                 logger.trace("Broadcasting event {} to: {}", node, listener);
@@ -120,8 +123,8 @@ public class MySensorsEventRegister extends EventRegister<MySensorsGatewayEventL
         }
     }
 
-    public void notifyNodeUpdateEvent(MySensorsNode node, MySensorsChild child, MySensorsVariable variable,
-            MySensorsNodeUpdateEventType eventType) {
+    public void notifyNodeUpdateEvent(MySensorsNode node, @Nullable MySensorsChild child,
+            @Nullable MySensorsVariable variable, MySensorsNodeUpdateEventType eventType) {
         synchronized (eventRegister.getEventListeners()) {
             eventRegister.getEventListeners().forEach((MySensorsGatewayEventListener listener) -> {
                 logger.trace("Broadcasting event {} to: {}", (variable != null ? variable : node), listener);

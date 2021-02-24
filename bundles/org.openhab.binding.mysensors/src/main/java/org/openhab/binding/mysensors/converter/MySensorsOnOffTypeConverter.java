@@ -12,7 +12,6 @@
  */
 package org.openhab.binding.mysensors.converter;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.types.Command;
@@ -40,7 +39,7 @@ public class MySensorsOnOffTypeConverter implements MySensorsTypeConverter {
     }
 
     @Override
-    public String fromCommand(@NonNull Command value) {
+    public String fromCommand(Command value) {
         if (value instanceof OnOffType) {
             if (value == OnOffType.OFF) {
                 return "0";

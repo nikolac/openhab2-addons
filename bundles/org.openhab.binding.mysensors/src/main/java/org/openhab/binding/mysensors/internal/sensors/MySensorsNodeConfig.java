@@ -13,6 +13,7 @@
 package org.openhab.binding.mysensors.internal.sensors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.Mergeable;
 import org.openhab.binding.mysensors.internal.exception.MergeException;
 
@@ -51,8 +52,8 @@ public class MySensorsNodeConfig implements Mergeable {
     }
 
     @Override
-    public void merge(Object o) throws MergeException {
-        if (o == null || !(o instanceof MySensorsNodeConfig)) {
+    public void merge(@Nullable Object o) throws MergeException {
+        if (!(o instanceof MySensorsNodeConfig)) {
             throw new MergeException("Invalid object to merge");
         }
 

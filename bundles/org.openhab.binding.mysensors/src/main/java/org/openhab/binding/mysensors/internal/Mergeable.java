@@ -30,5 +30,5 @@ public interface Mergeable {
      * @param o
      * @throws MergeException
      */
-    public void merge(Object o) throws MergeException;
+    void merge(Object o) throws MergeException;
 }

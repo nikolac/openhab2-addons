@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.mqtt;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.io.transport.mqtt.MqttService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +21,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation for static access to the (central) MqttService
  *
- * @author Tim Oberföll
- * @author Sean McGuire
+ * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class MySensorsMqttService {
 
+    @Nullable
     private static MqttService mqttService;
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -33,6 +36,7 @@ public class MySensorsMqttService {
      *
      * @return static instance of the MqttService
      */
+    @Nullable
     public static MqttService getMqttService() {
         return mqttService;
     }

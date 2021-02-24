@@ -12,12 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception occurs if there is no content to add, for example in a variable.
  *
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class NoContentException extends Exception {
     private static final long serialVersionUID = -3446354234423332363L;
 

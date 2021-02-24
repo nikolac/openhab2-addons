@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.gateway;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Holds the configuration and parameters of the MySensors gateway.
  *
@@ -19,43 +21,44 @@ package org.openhab.binding.mysensors.internal.gateway;
  * @author Andrea Cioni - Redesign
  *
  */
+@NonNullByDefault
 public class MySensorsGatewayConfig {
 
     /**
      * Is a serial or ip gateway?
      */
-    private MySensorsGatewayType gatewayType;
+    private MySensorsGatewayType gatewayType = MySensorsGatewayType.IP;
 
     // GLOBALS
     /**
      * Delay at which messages are send from the internal queue to the MySensors network
      */
-    private Integer sendDelay;
+    private int sendDelay;
 
     /**
      * Should nodes send imperial or metric values?
      */
-    private Boolean imperial;
+    private boolean imperial;
 
     /**
      * Should the startup check of the bridge at boot skipped?
      */
-    private Boolean startupCheckEnabled;
+    private boolean startupCheckEnabled;
 
     /**
      * Network sanity check enabled?
      */
-    private Boolean networkSanCheckEnabled;
+    private boolean networkSanCheckEnabled;
 
     /**
      * Determines interval to start NetworkSanityCheck
      */
-    private Integer networkSanCheckInterval;
+    private int networkSanCheckInterval;
 
     /**
      * Connection will wait this number of attempts before disconnecting
      */
-    private Integer networkSanCheckConnectionFailAttempts;
+    private int networkSanCheckConnectionFailAttempts;
 
     /**
      * Network sanity checker will also send heartbeats to all known nodes
@@ -65,18 +68,18 @@ public class MySensorsGatewayConfig {
     /**
      * Disconnect nodes that fail to answer to heartbeat request
      */
-    private Integer networkSanCheckSendHeartbeatFailAttempts;
+    private int networkSanCheckSendHeartbeatFailAttempts;
 
     // SERIAL
     /**
      * Serial port the gateway is attached to
      */
-    private String serialPort;
+    private String serialPort = "";
 
     /**
      * Baud rate used to connect the serial port
      */
-    private Integer baudRate;
+    private int baudRate;
 
     /**
      * try hard reset of serial port using DTR
@@ -87,27 +90,27 @@ public class MySensorsGatewayConfig {
     /**
      * ip address the gateway is attached to
      */
-    private String ipAddress;
+    private String ipAddress = "";
 
     /**
      * tcp port the gateway is running at
      */
-    private Integer tcpPort;
+    private int tcpPort;
 
     /**
      * Name of the MQTT broker defined
      */
-    private String brokerName;
+    private String brokerName = "";
 
     /**
      * Name of the MQTT topic to subscribe to
      */
-    private String topicSubscribe;
+    private String topicSubscribe = "";
 
     /**
      * Name of the MQTT topic to publish to
      */
-    private String topicPublish;
+    private String topicPublish = "";
 
     public MySensorsGatewayType getGatewayType() {
         return gatewayType;
@@ -133,7 +136,7 @@ public class MySensorsGatewayConfig {
         this.ipAddress = ipAddress;
     }
 
-    public Integer getTcpPort() {
+    public int getTcpPort() {
         return tcpPort;
     }
 
@@ -141,7 +144,7 @@ public class MySensorsGatewayConfig {
         this.tcpPort = tcpPort;
     }
 
-    public Integer getSendDelay() {
+    public int getSendDelay() {
         return sendDelay;
     }
 
@@ -149,7 +152,7 @@ public class MySensorsGatewayConfig {
         this.sendDelay = sendDelay;
     }
 
-    public Integer getBaudRate() {
+    public int getBaudRate() {
         return baudRate;
     }
 
@@ -157,7 +160,7 @@ public class MySensorsGatewayConfig {
         this.baudRate = baudRate;
     }
 
-    public Boolean getImperial() {
+    public boolean getImperial() {
         return imperial;
     }
 
@@ -165,7 +168,7 @@ public class MySensorsGatewayConfig {
         this.imperial = imperial;
     }
 
-    public Boolean getStartupCheck() {
+    public boolean getStartupCheck() {
         return startupCheckEnabled;
     }
 
@@ -173,7 +176,7 @@ public class MySensorsGatewayConfig {
         this.startupCheckEnabled = startupCheckEnabled;
     }
 
-    public Boolean getEnableNetworkSanCheck() {
+    public boolean getEnableNetworkSanCheck() {
         return networkSanCheckEnabled;
     }
 
@@ -181,7 +184,7 @@ public class MySensorsGatewayConfig {
         this.networkSanCheckEnabled = enableNetworkSanCheck;
     }
 
-    public Integer getSanityCheckerInterval() {
+    public int getSanityCheckerInterval() {
         return networkSanCheckInterval;
     }
 
@@ -189,7 +192,7 @@ public class MySensorsGatewayConfig {
         this.networkSanCheckInterval = sanityCheckerInterval;
     }
 
-    public Integer getSanCheckConnectionFailAttempts() {
+    public int getSanCheckConnectionFailAttempts() {
         return networkSanCheckConnectionFailAttempts;
     }
 
@@ -205,7 +208,7 @@ public class MySensorsGatewayConfig {
         this.networkSanCheckSendHeartbeat = sanCheckSendHeartbeat;
     }
 
-    public Integer getSanCheckSendHeartbeatFailAttempts() {
+    public int getSanCheckSendHeartbeatFailAttempts() {
         return networkSanCheckSendHeartbeatFailAttempts;
     }
 

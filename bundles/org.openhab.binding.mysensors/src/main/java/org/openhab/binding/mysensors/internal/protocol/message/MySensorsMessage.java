@@ -14,6 +14,8 @@ package org.openhab.binding.mysensors.internal.protocol.message;
 
 import java.text.ParseException;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
 
@@ -23,6 +25,7 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class MySensorsMessage {
 
     // I version message for startup check
@@ -30,16 +33,17 @@ public class MySensorsMessage {
             MySensorsNode.MYSENSORS_NODE_ID_RESERVED_GATEWAY_0, MySensorsChild.MYSENSORS_CHILD_ID_RESERVED_0,
             MySensorsMessageType.INTERNAL, MySensorsMessageAck.FALSE, false, MySensorsMessageSubType.I_VERSION, "");
 
-    private int nodeId;
-    private int childId;
-    private MySensorsMessageType msgType; // type of message: request, internal, presentation ...
-    private MySensorsMessageAck ack;
-    private boolean revert;
-    private MySensorsMessageSubType subType;
-    private String msg;
-    private int retries;
-    private long nextSend;
-    private boolean smartSleep;
+    private int nodeId = -1;
+    private int childId = -1;
+    private MySensorsMessageType msgType = MySensorsMessageType.REQ; // type of message: request, internal, presentation
+                                                                     // ...
+    private MySensorsMessageAck ack = MySensorsMessageAck.FALSE;
+    private boolean revert = false;
+    private MySensorsMessageSubType subType = MySensorsMessageSubType.I_DEBUG;
+    private String msg = "";
+    private int retries = -1;
+    private long nextSend = -1;
+    private boolean smartSleep = false;
     private MySensorsMessageDirection direction = MySensorsMessageDirection.OUTGOING;
 
     public MySensorsMessage() {
@@ -132,11 +136,7 @@ public class MySensorsMessage {
     }
 
     public boolean isAck() {
-        if (ack == MySensorsMessageAck.TRUE) {
-            return true;
-        } else {
-            return false;
-        }
+        return ack == MySensorsMessageAck.TRUE;
     }
 
     public MySensorsMessageSubType getSubType() {
@@ -213,16 +213,6 @@ public class MySensorsMessage {
     }
 
     /**
-     * Checks if the received message is a I_HEARTBEAT_RESPONSE (internal MySensors) message.
-     *
-     * @return true, if the received message is a I_HEARTBEAT_RESPONSE message.
-     */
-    public boolean isIHearbeatResponse() {
-        return (childId == MySensorsChild.MYSENSORS_CHILD_ID_RESERVED_255) && (msgType == MySensorsMessageType.INTERNAL)
-                && (subType == MySensorsMessageSubType.I_HEARTBEAT_RESPONSE);
-    }
-
-    /**
      * Checks if the received message is a I_TIME (internal MySensors) message.
      *
      * @return true, if the received message is a I_TIME message.
@@ -244,29 +234,12 @@ public class MySensorsMessage {
                 && (ack == MySensorsMessageAck.FALSE) && (subType == MySensorsMessageSubType.I_ID_REQUEST);
     }
 
-    /**
-     * Checks if the received message is a presentation message.
-     *
-     * @return true, if the received message is a presentation message.
-     */
-    public boolean isPresentationMessage() {
-        return msgType == MySensorsMessageType.PRESENTATION;
-    }
-
     public boolean isSetReqMessage() {
         return msgType == MySensorsMessageType.REQ || msgType == MySensorsMessageType.SET;
     }
 
-    public boolean isReqMessage() {
-        return msgType == MySensorsMessageType.REQ;
-    }
-
     public boolean isSetMessage() {
         return msgType == MySensorsMessageType.SET;
-    }
-
-    public boolean isInternalMessage() {
-        return msgType == MySensorsMessageType.INTERNAL;
     }
 
     /**
@@ -304,36 +277,16 @@ public class MySensorsMessage {
      * @param line Input is a String containing the message received from the MySensors network
      * @return Returns the content of the message as a MySensorsMessage
      *
-     * @throws ParseException
+     * @throws ParseException Throws exception if message is unrecognizable
      */
     public static MySensorsMessage parse(String line) throws ParseException {
         try {
             String[] splitMessage = line.split(";");
             if (splitMessage.length > 4) {
-                MySensorsMessage mysensorsmessage = new MySensorsMessage();
-
-                int nodeId = Integer.parseInt(splitMessage[MySensorsMessagePart.NODE.getId()]);
-
-                mysensorsmessage.setNodeId(nodeId);
-                mysensorsmessage.setChildId(Integer.parseInt(splitMessage[MySensorsMessagePart.CHILD.getId()]));
-
-                int msgTypeId = Integer.parseInt(splitMessage[MySensorsMessagePart.TYPE.getId()]);
-                mysensorsmessage.setMsgType(MySensorsMessageType.getById(msgTypeId));
-
-                int ackId = Integer.parseInt(splitMessage[MySensorsMessagePart.ACK.getId()]);
-                mysensorsmessage.setAck(MySensorsMessageAck.getById(ackId));
-
-                int subTypeId = Integer.parseInt(splitMessage[MySensorsMessagePart.SUBTYPE.getId()]);
-                if (mysensorsmessage.getMsgType() == MySensorsMessageType.INTERNAL) {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getInternalById(subTypeId));
-                } else if (mysensorsmessage.getMsgType() == MySensorsMessageType.PRESENTATION) {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getPresentationById(subTypeId));
-                } else {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getSetReqById(subTypeId));
-                }
+                MySensorsMessage mysensorsmessage = populateMysensorsMessage(splitMessage);
 
                 if (splitMessage.length == 6) {
-                    String msg = splitMessage[5].replaceAll("\\r|\\n", "").trim();
+                    String msg = splitMessage[5].replaceAll("[\\r\\n]", "").trim();
                     mysensorsmessage.setMsg(msg);
                 } else {
                     mysensorsmessage.setMsg("");
@@ -351,33 +304,13 @@ public class MySensorsMessage {
      * @param payload is a String containing the message received from the MySensors network
      * @return Returns the content of the message as a MySensorsMessage
      *
-     * @throws ParseException
+     * @throws ParseException When message is unrecognizable
      */
     public static MySensorsMessage parseMQTT(String topic, String payload) throws ParseException {
         try {
             String[] splitTopic = topic.split("/");
             if (splitTopic.length == 5) {
-                MySensorsMessage mysensorsmessage = new MySensorsMessage();
-
-                int nodeId = Integer.parseInt(splitTopic[MySensorsMessagePart.NODE.getId()]);
-
-                mysensorsmessage.setNodeId(nodeId);
-                mysensorsmessage.setChildId(Integer.parseInt(splitTopic[MySensorsMessagePart.CHILD.getId()]));
-
-                int msgTypeId = Integer.parseInt(splitTopic[MySensorsMessagePart.TYPE.getId()]);
-                mysensorsmessage.setMsgType(MySensorsMessageType.getById(msgTypeId));
-
-                int ackId = Integer.parseInt(splitTopic[MySensorsMessagePart.ACK.getId()]);
-                mysensorsmessage.setAck(MySensorsMessageAck.getById(ackId));
-
-                int subTypeId = Integer.parseInt(splitTopic[MySensorsMessagePart.SUBTYPE.getId()]);
-                if (mysensorsmessage.getMsgType() == MySensorsMessageType.INTERNAL) {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getInternalById(subTypeId));
-                } else if (mysensorsmessage.getMsgType() == MySensorsMessageType.PRESENTATION) {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getPresentationById(subTypeId));
-                } else {
-                    mysensorsmessage.setSubType(MySensorsMessageSubType.getSetReqById(subTypeId));
-                }
+                MySensorsMessage mysensorsmessage = populateMysensorsMessage(splitTopic);
 
                 mysensorsmessage.setMsg(payload);
                 return mysensorsmessage;
@@ -387,6 +320,31 @@ public class MySensorsMessage {
         } catch (Exception e) {
             throw new ParseException(e.getClass() + " : " + e.getMessage(), 0);
         }
+    }
+
+    private static MySensorsMessage populateMysensorsMessage(String[] splitTopic) {
+        MySensorsMessage mysensorsmessage = new MySensorsMessage();
+
+        int nodeId = Integer.parseInt(splitTopic[MySensorsMessagePart.NODE.getId()]);
+
+        mysensorsmessage.setNodeId(nodeId);
+        mysensorsmessage.setChildId(Integer.parseInt(splitTopic[MySensorsMessagePart.CHILD.getId()]));
+
+        int msgTypeId = Integer.parseInt(splitTopic[MySensorsMessagePart.TYPE.getId()]);
+        mysensorsmessage.setMsgType(MySensorsMessageType.getById(msgTypeId));
+
+        int ackId = Integer.parseInt(splitTopic[MySensorsMessagePart.ACK.getId()]);
+        mysensorsmessage.setAck(MySensorsMessageAck.getById(ackId));
+
+        int subTypeId = Integer.parseInt(splitTopic[MySensorsMessagePart.SUBTYPE.getId()]);
+        if (mysensorsmessage.getMsgType() == MySensorsMessageType.INTERNAL) {
+            mysensorsmessage.setSubType(MySensorsMessageSubType.getInternalById(subTypeId));
+        } else if (mysensorsmessage.getMsgType() == MySensorsMessageType.PRESENTATION) {
+            mysensorsmessage.setSubType(MySensorsMessageSubType.getPresentationById(subTypeId));
+        } else {
+            mysensorsmessage.setSubType(MySensorsMessageSubType.getSetReqById(subTypeId));
+        }
+        return mysensorsmessage;
     }
 
     /**
@@ -430,7 +388,7 @@ public class MySensorsMessage {
         int result = 1;
         result = prime * result + ack.getId();
         result = prime * result + childId;
-        result = prime * result + ((msg == null) ? 0 : msg.hashCode());
+        result = prime * result + msg.hashCode();
         result = prime * result + msgType.getId();
         result = prime * result + (int) (nextSend ^ (nextSend >>> 32));
         result = prime * result + nodeId;
@@ -441,7 +399,7 @@ public class MySensorsMessage {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -458,11 +416,7 @@ public class MySensorsMessage {
         if (childId != other.childId) {
             return false;
         }
-        if (msg == null) {
-            if (other.msg != null) {
-                return false;
-            }
-        } else if (!msg.equals(other.msg)) {
+        if (!msg.equals(other.msg)) {
             return false;
         }
         if (msgType != other.msgType) {
@@ -480,42 +434,7 @@ public class MySensorsMessage {
         if (revert != other.revert) {
             return false;
         }
-        if (subType != other.subType) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Generate a custom hash by message parts passed as vararg
-     * Usage example: customHashCode(MYSENSORS_MSG_PAYLOAD_PART, MYSENSORS_MSG_SUBTYPE_PART);
-     *
-     * @param messageParts one or mode valid message part, use MYSENSORS_MSG_*_PART definition
-     *
-     * @return the hash code
-     */
-    public int customHashCode(MySensorsMessagePart... messageParts) {
-        final int prime = 101;
-
-        int result = 1;
-        for (int i = 0; i < messageParts.length; i++) {
-            if (messageParts[i] == MySensorsMessagePart.PAYLOAD) {
-                result = prime * result + ((msg == null) ? 0 : msg.hashCode());
-            } else if (messageParts[i] == MySensorsMessagePart.SUBTYPE) {
-                result = prime * result + subType.getId();
-            } else if (messageParts[i] == MySensorsMessagePart.ACK) {
-                result = prime * result + ack.getId();
-            } else if (messageParts[i] == MySensorsMessagePart.TYPE) {
-                result = prime * result + msgType.getId();
-            } else if (messageParts[i] == MySensorsMessagePart.CHILD) {
-                result = prime * result + childId;
-            } else if (messageParts[i] == MySensorsMessagePart.NODE) {
-                result = prime * result + nodeId;
-            } else {
-                throw new IllegalArgumentException("Messsage part must be in [0,5] interval");
-            }
-        }
-        return result;
+        return subType == other.subType;
     }
 
     @Override

@@ -12,32 +12,21 @@
  */
 package org.openhab.binding.mysensors.internal.protocol;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
-import org.openhab.binding.mysensors.internal.exception.NoAckException;
 import org.openhab.binding.mysensors.internal.gateway.MySensorsGatewayConfig;
-import org.openhab.binding.mysensors.internal.gateway.MySensorsNetworkSanityChecker;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageDirection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.*;
 
 /**
  * Connection of the bridge (via TCP/IP or serial) to the MySensors network.
@@ -46,6 +35,7 @@ import org.slf4j.LoggerFactory;
  * @author Andrea Cioni - Redesign
  *
  */
+@NonNullByDefault
 public abstract class MySensorsAbstractConnection implements Runnable {
 
     // Used by the reader to request a disconnection if there are too much exception
@@ -75,21 +65,21 @@ public abstract class MySensorsAbstractConnection implements Runnable {
     // Flag to be set (through available method below)
     private boolean requestDisconnection = false;
 
-    private Object waitingObj = null;
+    private final Object waitingObj;
 
     // I_VERSION response flag
     private boolean iVersionResponse = false;
 
     // Reader and writer thread
-    protected MySensorsWriter mysConWriter = null;
-    protected MySensorsReader mysConReader = null;
+    @Nullable
+    protected MySensorsWriter mysConWriter;
 
-    protected MySensorsEventRegister myEventRegister = null;
+    @Nullable
+    protected MySensorsReader mysConReader;
 
-    protected MySensorsGatewayConfig myGatewayConfig = null;
+    protected MySensorsEventRegister myEventRegister;
 
-    // Sanity checker
-    private MySensorsNetworkSanityChecker netSanityChecker = null;
+    protected MySensorsGatewayConfig myGatewayConfig;
 
     // Connection retry done
     private int numOfRetry = 0;
@@ -97,8 +87,10 @@ public abstract class MySensorsAbstractConnection implements Runnable {
     private int errorCount;
 
     // Connection status watchdog
-    private ScheduledExecutorService watchdogExecutor = null;
-    private Future<?> futureWatchdog = null;
+    private final ScheduledExecutorService watchdogExecutor;
+
+    @Nullable
+    private Future<?> futureWatchdog;
 
     public MySensorsAbstractConnection(MySensorsGatewayConfig myGatewayConfig, MySensorsEventRegister myEventRegister) {
         this.myEventRegister = myEventRegister;
@@ -106,6 +98,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
         this.watchdogExecutor = Executors.newSingleThreadScheduledExecutor();
         this.iVersionResponse = false;
         this.errorCount = 0;
+        waitingObj = this;
     }
 
     /**
@@ -161,16 +154,10 @@ public abstract class MySensorsAbstractConnection implements Runnable {
      * Shutdown method that allows the correct disconnection with the used bridge
      */
     private void disconnect() {
-        if (netSanityChecker != null) {
-            netSanityChecker.stop();
-            netSanityChecker = null;
-        }
-
         stopConnection();
         connected = false;
         requestDisconnection = false;
         iVersionResponse = false;
-
         myEventRegister.notifyBridgeStatusUpdate(this, isConnected());
     }
 
@@ -191,10 +178,8 @@ public abstract class MySensorsAbstractConnection implements Runnable {
             futureWatchdog = null;
         }
 
-        if (watchdogExecutor != null) {
-            watchdogExecutor.shutdown();
-            watchdogExecutor.shutdownNow();
-        }
+        watchdogExecutor.shutdown();
+        watchdogExecutor.shutdownNow();
     }
 
     /**
@@ -203,17 +188,21 @@ public abstract class MySensorsAbstractConnection implements Runnable {
      *
      * @return true if the gateway test pass successfully
      */
-    protected boolean startReaderWriterThread(MySensorsReader reader, MySensorsWriter writer) {
+    protected boolean startReaderWriterThread(@Nullable MySensorsReader reader, @Nullable MySensorsWriter writer) {
+        if (reader == null || writer == null) {
+            logger.warn("Cannot start reader-writer thread with null reader or null writer");
+            return false;
+        }
+
         reader.startReader();
         writer.startWriter();
 
         if (myGatewayConfig.getStartupCheck()) {
             try {
                 int i = 0;
-                synchronized (this) {
+                synchronized (waitingObj) {
                     while (!iVersionResponse && i < MAX_ATTEMPTS_IVERSION_REQUEST) {
                         sendMessage(MySensorsMessage.I_VERSION_MESSAGE);
-                        waitingObj = this;
                         waitingObj.wait(1000);
                         i++;
                     }
@@ -242,6 +231,10 @@ public abstract class MySensorsAbstractConnection implements Runnable {
      * @param msg The message that should be send.
      */
     public void sendMessage(MySensorsMessage msg) {
+        if (mysConWriter == null) {
+            logger.warn("Can't send message, connection writer is null");
+            return;
+        }
         if (msg.isSmartSleep()) {
             mysConWriter.addMySensorsOutboundSmartSleepMessage(msg);
         } else {
@@ -294,13 +287,20 @@ public abstract class MySensorsAbstractConnection implements Runnable {
      * @author Tim Oberföll
      *
      */
+    @NonNullByDefault
     protected class MySensorsReader implements Runnable {
-        private Logger logger = LoggerFactory.getLogger(MySensorsReader.class);
+        private final Logger logger = LoggerFactory.getLogger(MySensorsReader.class);
 
+        @Nullable
         private ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        @Nullable
         private Future<?> future;
 
+        @Nullable
         private InputStream inStream;
+
+        @Nullable
         private BufferedReader reads;
 
         private boolean stopReader;
@@ -314,18 +314,19 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * Starts the reader process that will receive the messages from the MySensors network.
          */
         public void startReader() {
-            future = executor.submit(this);
+            if (executor != null)
+                future = executor.submit(this);
         }
 
         @Override
         public void run() {
             Thread.currentThread().setName(MySensorsReader.class.getName());
-            String line = null;
+            String line;
 
             while (!stopReader) {
                 // Is there something to read?
                 try {
-                    if (!reads.ready()) {
+                    if (reads == null || !reads.ready()) {
                         Thread.sleep(10);
                         continue;
                     }
@@ -344,7 +345,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
                     if (!msg.isDebugMessage()) {
                         msg.setDirection(MySensorsMessageDirection.INCOMING);
 
-                        // Have we get a I_HEARBEAT_RESPONSE
+                        // Have we get a I_HEARTBEAT_RESPONSE
                         if (msg.isPreSleepNotification()) {
                             handleSmartSleepMessage(msg);
                         }
@@ -358,7 +359,6 @@ public abstract class MySensorsAbstractConnection implements Runnable {
                         if (msg.isAck()) {
                             handleAckReceived(msg);
                         }
-
                         myEventRegister.notifyMessageReceived(msg);
                     }
                 } catch (InterruptedException e) {
@@ -405,20 +405,19 @@ public abstract class MySensorsAbstractConnection implements Runnable {
         }
 
         private void iVersionMessageReceived(String msg) {
-            if (waitingObj != null) {
-                logger.debug("Good,Gateway is up and running! (Ver:{})", msg);
-                synchronized (waitingObj) {
-                    iVersionResponse = true;
-                    waitingObj.notifyAll();
-                    waitingObj = null;
-                }
+            logger.debug("Good, Gateway is up and running! (Ver:{})", msg);
+            iVersionResponse = true;
+            synchronized (waitingObj) {
+                waitingObj.notifyAll();
             }
         }
 
         private void handleAckReceived(MySensorsMessage msg) {
+            if (mysConWriter == null)
+                return;
             try {
                 mysConWriter.confirmAcknowledgeMessage(msg);
-            } catch (NoAckException e) {
+            } catch (Exception e) {
                 logger.warn("Invalid ACK message received:", e);
             }
         }
@@ -430,6 +429,8 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * @param msg The heartbeat message received from a node.
          */
         private void handleSmartSleepMessage(MySensorsMessage msg) {
+            if (mysConWriter == null)
+                return;
             mysConWriter.checkPendingSmartSleepMessage(msg.getNodeId());
         }
     }
@@ -441,25 +442,32 @@ public abstract class MySensorsAbstractConnection implements Runnable {
      * @author Tim Oberföll
      *
      */
+    @NonNullByDefault
     protected class MySensorsWriter implements Runnable {
-        private Logger logger = LoggerFactory.getLogger(MySensorsWriter.class);
+        private final Logger logger = LoggerFactory.getLogger(MySensorsWriter.class);
 
         private boolean stopWriting = false; // Stop the thread that sends the messages to the MySensors network
 
         // Blocking queue wait for message
-        private BlockingQueue<MySensorsMessage> outboundMessageQueue = null;
+        private final BlockingQueue<MySensorsMessage> outboundMessageQueue;
 
         // Queue for SmartSleep messages
-        private Queue<MySensorsMessage> smartSleepMessageQueue = null;
+        private final Queue<MySensorsMessage> smartSleepMessageQueue;
 
         // Map for acknowledge
-        private List<MySensorsMessage> acknowledgeMessages = null;
+        private final List<MySensorsMessage> acknowledgeMessages;
 
-        private PrintWriter outs = null;
-        private OutputStream outStream = null;
+        @Nullable
+        private PrintWriter outs;
 
+        @Nullable
+        private OutputStream outStream;
+
+        @Nullable
         private ExecutorService executor = Executors.newSingleThreadExecutor();
-        private Future<?> future = null;
+
+        @Nullable
+        private Future<?> future;
 
         public MySensorsWriter(OutputStream outStream) {
             this.outStream = outStream;
@@ -474,7 +482,8 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * and send them to the MySensors network.
          */
         public void startWriter() {
-            future = executor.submit(this);
+            if (executor != null)
+                future = executor.submit(this);
         }
 
         @Override
@@ -482,6 +491,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
             Thread.currentThread().setName(MySensorsWriter.class.getName());
             while (!stopWriting) {
                 try {
+                    @Nullable
                     MySensorsMessage msg = pollMySensorsOutboundQueue();
                     synchronized (outboundMessageQueue) {
                         if (msg != null) {
@@ -527,8 +537,9 @@ public abstract class MySensorsAbstractConnection implements Runnable {
                 }
 
                 try {
-                    Thread.sleep(myGatewayConfig.getSendDelay());
-                } catch (Exception e) {
+                    int sendDelay = myGatewayConfig.getSendDelay();
+                    Thread.sleep(sendDelay);
+                } catch (Exception ignored) {
                 }
             }
         }
@@ -574,21 +585,18 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * @param output the message/string/line that should be send to the MySensors gateway.
          */
         protected void sendMessage(String output) {
-            outs.println(output);
-            outs.flush();
+            if (outs != null) {
+                outs.println(output);
+                outs.flush();
+            }
         }
 
         /**
          * Confirm acknowledge for a message from the outbound message queue.
          *
          * @param msg The message that should be acknowledged from the queue.
-         * @throws NoAckException
          */
-        private void confirmAcknowledgeMessage(MySensorsMessage msg) throws NoAckException {
-            if (msg == null) {
-                throw new NoAckException("Invalid ack message to insert");
-            }
-
+        private void confirmAcknowledgeMessage(MySensorsMessage msg) {
             synchronized (acknowledgeMessages) {
                 acknowledgeMessages.add(msg);
             }
@@ -623,7 +631,6 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * Store more than one message in the outbound queue.
          *
          * @param msg the message that should be stored in the queue.
-         * @param copy the number of copies that should be stored.
          */
         private void addMySensorsOutboundMessage(MySensorsMessage msg) {
             try {
@@ -654,8 +661,9 @@ public abstract class MySensorsAbstractConnection implements Runnable {
          * Get the next message in line from the queue.
          *
          * @return the next message in line.
-         * @throws InterruptedException
+         * @throws InterruptedException if problem happens
          */
+        @Nullable
         private MySensorsMessage pollMySensorsOutboundQueue() throws InterruptedException {
             return outboundMessageQueue.poll(1, TimeUnit.DAYS);
         }
@@ -669,16 +677,16 @@ public abstract class MySensorsAbstractConnection implements Runnable {
         private void removeSmartSleepMessage(int nodeId, int childId) {
             synchronized (smartSleepMessageQueue) {
                 Iterator<MySensorsMessage> iterator = smartSleepMessageQueue.iterator();
-                if (iterator != null) {
-                    while (iterator.hasNext()) {
-                        MySensorsMessage msgInQueue = iterator.next();
-                        if (msgInQueue.getNodeId() == nodeId && msgInQueue.getChildId() == childId) {
-                            iterator.remove();
-                        } else {
-                            logger.debug("Message NOT removed for nodeId: {} and childId: {}.", nodeId, childId);
-                        }
+
+                while (iterator.hasNext()) {
+                    MySensorsMessage msgInQueue = iterator.next();
+                    if (msgInQueue.getNodeId() == nodeId && msgInQueue.getChildId() == childId) {
+                        iterator.remove();
+                    } else {
+                        logger.debug("Message NOT removed for nodeId: {} and childId: {}.", nodeId, childId);
                     }
                 }
+
             }
         }
 

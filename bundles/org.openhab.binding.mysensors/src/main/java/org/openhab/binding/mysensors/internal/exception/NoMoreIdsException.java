@@ -12,12 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception occurs if no more ids are available.
  *
  * @author Andrea Cioni - Initial contribution
  *
  */
+@NonNullByDefault
 public class NoMoreIdsException extends Exception {
 
     private static final long serialVersionUID = -8486356274123302462L;

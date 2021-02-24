@@ -12,12 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception is thrown if an error while trying to merge (two nodes or two childs) occures.
  *
  * @author Andrea Cioni - Initial contribution
  * @author Tim Oberföll - Redesign
  */
+@NonNullByDefault
 public class MergeException extends RuntimeException {
     private static final long serialVersionUID = 6237378516242187660L;
 

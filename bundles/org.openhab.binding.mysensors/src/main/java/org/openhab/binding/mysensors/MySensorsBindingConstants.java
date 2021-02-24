@@ -19,21 +19,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.binding.mysensors.converter.MySensorsDecimalTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsOnOffTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsOpenCloseTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsPercentTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsRGBTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsRGBWTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsStringTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsTypeConverter;
-import org.openhab.binding.mysensors.converter.MySensorsUpDownTypeConverter;
+import org.openhab.binding.mysensors.converter.*;
 import org.openhab.binding.mysensors.internal.MySensorsUtility;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
 import org.openhab.core.thing.ThingTypeUID;
 
 /**
- * The {@link MySensorsBinding} class defines common constants, which are
+ * The {@link MySensorsBindingConstants} class defines common constants, which are
  * used across the whole binding.
  *
  * @author Tim Oberföll - Initial contribution
@@ -46,14 +38,14 @@ public class MySensorsBindingConstants {
     // parameters / fields of a MySensors message
     public static final String PARAMETER_NODEID = "nodeId";
     public static final String PARAMETER_CHILDID = "childId";
-    public static final String PARAMETER_IPADDRESS = "ipAddress";
-    public static final String PRAMETER_TCPPORT = "tcpPort";
-    public static final String PARAMETER_SENDDELAY = "sendDelay";
-    public static final String PARAMETER_BAUDRATE = "baudRate";
-    public static final String PARAMETER_REQUESTACK = "requestack";
-    public static final String PARAMETER_TOPICSUBSCRIBE = "topicSubscribe";
-    public static final String PARAMETER_TOPICPUBLISH = "topicPublish";
-    public static final String PARAMETER_BROKERNAME = "brokerName";
+    // public static final String PARAMETER_IPADDRESS = "ipAddress";
+    // public static final String PARAMETER_TCPPORT = "tcpPort";
+    // public static final String PARAMETER_SENDDELAY = "sendDelay";
+    // public static final String PARAMETER_BAUDRATE = "baudRate";
+    // public static final String PARAMETER_REQUESTACK = "requestack";
+    // public static final String PARAMETER_TOPICSUBSCRIBE = "topicSubscribe";
+    // public static final String PARAMETER_TOPICPUBLISH = "topicPublish";
+    // public static final String PARAMETER_BROKERNAME = "brokerName";
 
     /**
      * All knowing thing. A node with nodeId 999 and childId 999 receives all messages
@@ -175,7 +167,7 @@ public class MySensorsBindingConstants {
     /**
      * Mapping MySensors message type/subtypes to channels.
      */
-    public static final Map<MySensorsMessageSubType, String> CHANNEL_MAP = new HashMap<MySensorsMessageSubType, String>() {
+    public static final Map<MySensorsMessageSubType, String> CHANNEL_MAP = new HashMap<>() {
 
         private static final long serialVersionUID = -7970323220036599380L;
 
@@ -232,7 +224,6 @@ public class MySensorsBindingConstants {
             put(MySensorsMessageSubType.V_VAR, CHANNEL_VAR);
             put(MySensorsMessageSubType.V_VA, CHANNEL_VA);
             put(MySensorsMessageSubType.V_POWER_FACTOR, CHANNEL_POWER_FACTOR);
-            put(MySensorsMessageSubType.V_TEXT, CHANNEL_TEXT);
             put(MySensorsMessageSubType.V_IR_SEND, CHANNEL_IR_SEND);
             put(MySensorsMessageSubType.V_IR_RECEIVE, CHANNEL_IR_RECEIVE);
             put(MySensorsMessageSubType.V_SCENE_ON, CHANNEL_SCENE_ON);
@@ -262,12 +253,13 @@ public class MySensorsBindingConstants {
     /**
      * Mappings between ChannelUID and class that represents the type of the channel
      */
-    public static final Map<String, MySensorsTypeConverter> TYPE_MAP = new HashMap<String, MySensorsTypeConverter>() {
+    public static final Map<String, MySensorsTypeConverter> TYPE_MAP = new HashMap<>() {
 
         /**
          *
          */
         private static final long serialVersionUID = 6273187523631143905L;
+
         {
             put(CHANNEL_TEMP, DECIMAL_TYPE_CONVERTER);
             put(CHANNEL_HUM, DECIMAL_TYPE_CONVERTER);
@@ -281,8 +273,6 @@ public class MySensorsBindingConstants {
             put(CHANNEL_ARMED, ONOFF_TYPE_CONVERTER);
             put(CHANNEL_PERCENTAGE, PERCENT_TYPE_CONVERTER);
             put(CHANNEL_COVER, UPDOWN_TYPE_CONVERTER);
-            put(CHANNEL_COVER, UPDOWN_TYPE_CONVERTER); // !
-            put(CHANNEL_COVER, UPDOWN_TYPE_CONVERTER); // !
             put(CHANNEL_WIND, DECIMAL_TYPE_CONVERTER);
             put(CHANNEL_GUST, DECIMAL_TYPE_CONVERTER);
             put(CHANNEL_RAIN, DECIMAL_TYPE_CONVERTER);
@@ -321,7 +311,6 @@ public class MySensorsBindingConstants {
             put(CHANNEL_VAR, DECIMAL_TYPE_CONVERTER);
             put(CHANNEL_VA, DECIMAL_TYPE_CONVERTER);
             put(CHANNEL_POWER_FACTOR, DECIMAL_TYPE_CONVERTER);
-            put(CHANNEL_TEXT, STRING_TYPE_CONVERTER);
             put(CHANNEL_IR_SEND, STRING_TYPE_CONVERTER);
             put(CHANNEL_IR_RECEIVE, STRING_TYPE_CONVERTER);
             put(CHANNEL_SCENE_ON, DECIMAL_TYPE_CONVERTER);
@@ -337,12 +326,13 @@ public class MySensorsBindingConstants {
     /**
      * Used in DiscoveryService to map subtype of a presentation message to thing type
      */
-    public static final Map<MySensorsMessageSubType, ThingTypeUID> THING_UID_MAP = new HashMap<MySensorsMessageSubType, ThingTypeUID>() {
+    public static final Map<MySensorsMessageSubType, ThingTypeUID> THING_UID_MAP = new HashMap<>() {
 
         /**
          *
          */
         private static final long serialVersionUID = -2042537863671385026L;
+
         {
             put(MySensorsMessageSubType.S_HUM, THING_TYPE_HUMIDITY);
             put(MySensorsMessageSubType.S_TEMP, THING_TYPE_TEMPERATURE);
@@ -401,9 +391,6 @@ public class MySensorsBindingConstants {
             THING_TYPE_TEXT, THING_TYPE_IR, THING_TYPE_AIR_QUALITY, THING_TYPE_DUST, THING_TYPE_COLOR_SENSOR,
             THING_TYPE_MOISTURE, THING_TYPE_SPRINKLER, THING_TYPE_HEATER, THING_TYPE_VIBRATION, THING_TYPE_WATER_LEAK,
             THING_TYPE_GAS, THING_TYPE_GPS, THING_TYPE_SCENE_CONTROLLER).collect(Collectors.toSet());
-    /** Supported bridges */
-    public static final Set<ThingTypeUID> SUPPORTED_BRIDGE_THING_TYPES_UIDS = Stream
-            .of(THING_TYPE_BRIDGE_SER, THING_TYPE_BRIDGE_ETH, THING_TYPE_BRIDGE_MQTT).collect(Collectors.toSet());
 
     /** Supported devices (things + bridges) */
     public static final Set<ThingTypeUID> SUPPORTED_DEVICE_TYPES_UIDS = Stream.of(THING_TYPE_HUMIDITY,

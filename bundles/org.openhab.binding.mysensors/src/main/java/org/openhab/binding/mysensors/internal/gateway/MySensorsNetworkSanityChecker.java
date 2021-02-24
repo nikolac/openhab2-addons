@@ -12,14 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.gateway;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
 import org.openhab.binding.mysensors.internal.event.MySensorsGatewayEventListener;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
@@ -33,21 +27,30 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsNodeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Regulary checks the status of the link to the gateway to the MySensors network.
  *
  * @author Andrea Cioni - Initial contribution
  *
  */
+@NonNullByDefault
 public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListener, Runnable {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final int SEND_DELAY = 3000;
 
-    private MySensorsEventRegister myEventRegister;
-    private MySensorsAbstractConnection myCon;
-    private MySensorsGateway myGateway;
+    private final MySensorsEventRegister myEventRegister;
+    @Nullable
+    private final MySensorsAbstractConnection myCon;
+    private final MySensorsGateway myGateway;
 
     private final int scheduleMinuteDelay;
     private final int maxAttemptsBeforeDisconnecting;
@@ -55,16 +58,19 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
     private final boolean sendHeartbeat;
     private final int maxHeartbeatAttemptsBeforeDisconnecting;
 
+    @Nullable
     private ScheduledExecutorService scheduler;
+
+    @Nullable
     private ScheduledFuture<?> futureSanityChk;
 
-    private Integer missedIVersionMessages = 0;
+    private int missedIVersionMessages = 0;
     private boolean iVersionMessageArrived;
 
-    private Map<Integer, Integer> missingHearbeatsMap;
+    private final Map<Integer, Integer> missingHeartbeatsMap;
 
     public MySensorsNetworkSanityChecker(MySensorsGateway myGateway, MySensorsEventRegister myEventRegister,
-            MySensorsAbstractConnection myCon) {
+            @Nullable MySensorsAbstractConnection myCon) {
         this.myGateway = myGateway;
         this.myCon = myCon;
         this.myEventRegister = myEventRegister;
@@ -73,6 +79,7 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
         this.sendHeartbeat = myGateway.getConfiguration().getSanCheckSendHeartbeat();
         this.maxHeartbeatAttemptsBeforeDisconnecting = myGateway.getConfiguration()
                 .getSanCheckSendHeartbeatFailAttempts();
+        this.missingHeartbeatsMap = new HashMap<>();
     }
 
     /**
@@ -134,29 +141,27 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
 
     private void checkExpectedUpdate() {
         for (Integer nodeId : myGateway.getGivenIds()) {
+            @Nullable
             MySensorsNode node = myGateway.getNode(nodeId);
             if (node != null) {
-                Optional<MySensorsNodeConfig> c = node.getNodeConfig();
-                if (c.isPresent()) {
-                    MySensorsNodeConfig nodeConfig = c.get();
-                    int minutesTimeout = nodeConfig.getExpectUpdateTimeout();
-                    if (minutesTimeout > 0) {
-                        if (!nodeConfig.getRequestHeartbeatResponse()) {
-                            long nodeLastUpdate = node.getLastUpdate().getTime();
-                            long minutesTimeoutMillis = minutesTimeout * 60 * 1000;
-                            logger.debug("Node {} request update every {} minutes, current: {}", nodeId, minutesTimeout,
-                                    (System.currentTimeMillis() - nodeLastUpdate) / (1000 * 60));
-                            if (((System.currentTimeMillis() - nodeLastUpdate) > minutesTimeoutMillis)
-                                    && node.isReachable()) {
-                                logger.warn("Node {} not receive excpected update", nodeId);
-                                node.setReachable(false);
-                                myEventRegister.notifyNodeReachEvent(node, false);
-                            }
-                        } else {
-                            logger.warn(
-                                    "Check expected update can't be performed on node {} if request heartbeat is active.",
-                                    nodeId);
+                MySensorsNodeConfig nodeConfig = node.getNodeConfig();
+                int minutesTimeout = nodeConfig.getExpectUpdateTimeout();
+                if (minutesTimeout > 0) {
+                    if (!nodeConfig.getRequestHeartbeatResponse()) {
+                        long nodeLastUpdate = node.getLastUpdate().getTime();
+                        long minutesTimeoutMillis = minutesTimeout * 60 * 1000;
+                        logger.debug("Node {} request update every {} minutes, current: {}", nodeId, minutesTimeout,
+                                (System.currentTimeMillis() - nodeLastUpdate) / (1000 * 60));
+                        if (((System.currentTimeMillis() - nodeLastUpdate) > minutesTimeoutMillis)
+                                && node.isReachable()) {
+                            logger.warn("Node {} not receive expected update", nodeId);
+                            node.setReachable(false);
+                            myEventRegister.notifyNodeReachEvent(node, false);
                         }
+                    } else {
+                        logger.warn(
+                                "Check expected update can't be performed on node {} if request heartbeat is active.",
+                                nodeId);
                     }
                 }
             }
@@ -165,39 +170,37 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
 
     private void checkHeartbeatsResponse() {
         for (Integer nodeId : myGateway.getGivenIds()) {
+            @Nullable
             MySensorsNode node = myGateway.getNode(nodeId);
             if (node != null) {
-                Optional<MySensorsNodeConfig> c = node.getNodeConfig();
-                if (c.isPresent()) {
-                    MySensorsNodeConfig nodeConfig = c.get();
-                    if (nodeConfig.getRequestHeartbeatResponse()) {
-                        synchronized (missingHearbeatsMap) {
-                            Integer missingHearbeat = missingHearbeatsMap.getOrDefault(nodeId, 0);
+                MySensorsNodeConfig nodeConfig = node.getNodeConfig();
+                if (nodeConfig.getRequestHeartbeatResponse()) {
+                    synchronized (missingHeartbeatsMap) {
+                        Integer missingHearbeat = missingHeartbeatsMap.getOrDefault(nodeId, 0);
 
-                            if (missingHearbeat == -1) { // Heartbeat response received
-                                if (!node.isReachable()) {
-                                    logger.debug("Node {} received heartbeat response. Reconnecting it", nodeId);
-                                    node.setReachable(true);
-                                    myEventRegister.notifyNodeReachEvent(node, true);
-                                } else {
-                                    logger.debug("Node {} received heartbeat response, ok...", nodeId);
-                                }
-                            } else { // No heartbeat response received
-                                missingHearbeat++;
+                        if (missingHearbeat == -1) { // Heartbeat response received
+                            if (!node.isReachable()) {
+                                logger.debug("Node {} received heartbeat response. Reconnecting it", nodeId);
+                                node.setReachable(true);
+                                myEventRegister.notifyNodeReachEvent(node, true);
+                            } else {
+                                logger.debug("Node {} received heartbeat response, ok...", nodeId);
+                            }
+                        } else { // No heartbeat response received
+                            missingHearbeat++;
 
-                                if (missingHearbeat >= maxHeartbeatAttemptsBeforeDisconnecting) {
-                                    if (node.isReachable()) {
-                                        logger.warn(
-                                                "Node {} is not receiving heartbeat response so it will be disconnected",
-                                                nodeId);
-                                        node.setReachable(false);
-                                        myEventRegister.notifyNodeReachEvent(node, false);
-                                    }
-                                } else {
-                                    missingHearbeatsMap.put(nodeId, missingHearbeat);
-                                    logger.debug("Node {} is not receiving hearbeat response (miss {} of {})", nodeId,
-                                            missingHearbeat, maxHeartbeatAttemptsBeforeDisconnecting);
+                            if (missingHearbeat >= maxHeartbeatAttemptsBeforeDisconnecting) {
+                                if (node.isReachable()) {
+                                    logger.warn(
+                                            "Node {} is not receiving heartbeat response so it will be disconnected",
+                                            nodeId);
+                                    node.setReachable(false);
+                                    myEventRegister.notifyNodeReachEvent(node, false);
                                 }
+                            } else {
+                                missingHeartbeatsMap.put(nodeId, missingHearbeat);
+                                logger.debug("Node {} is not receiving hearbeat response (miss {} of {})", nodeId,
+                                        missingHearbeat, maxHeartbeatAttemptsBeforeDisconnecting);
                             }
                         }
                     }
@@ -207,14 +210,12 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
     }
 
     private void sendHeartbeatRequest() {
-        synchronized (missingHearbeatsMap) {
+        synchronized (missingHeartbeatsMap) {
             for (Integer nodeId : myGateway.getGivenIds()) {
-                if (nodeId != null) {
-                    MySensorsMessage msg = new MySensorsMessage(nodeId, MySensorsChild.MYSENSORS_CHILD_ID_RESERVED_255,
-                            MySensorsMessageType.INTERNAL, MySensorsMessageAck.FALSE, false,
-                            MySensorsMessageSubType.I_HEARTBEAT_REQUEST, "");
-                    myGateway.sendMessage(msg);
-                }
+                MySensorsMessage msg = new MySensorsMessage(nodeId, MySensorsChild.MYSENSORS_CHILD_ID_RESERVED_255,
+                        MySensorsMessageType.INTERNAL, MySensorsMessageAck.FALSE, false,
+                        MySensorsMessageSubType.I_HEARTBEAT_REQUEST, "");
+                myGateway.sendMessage(msg);
             }
         }
     }
@@ -232,51 +233,45 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
 
         Thread.sleep(SEND_DELAY);
 
-        synchronized (missedIVersionMessages) {
-            if (!iVersionMessageArrived) {
-                logger.warn("I_VERSION message response is not arrived. Remained attempts before disconnection {}",
-                        maxAttemptsBeforeDisconnecting - missedIVersionMessages);
+        if (!iVersionMessageArrived) {
+            logger.warn("I_VERSION message response is not arrived. Remained attempts before disconnection {}",
+                    maxAttemptsBeforeDisconnecting - missedIVersionMessages);
 
-                if ((maxAttemptsBeforeDisconnecting - missedIVersionMessages) <= 0) {
-                    logger.error("Retry period expired, gateway is down. Disconneting bridge...");
+            if ((maxAttemptsBeforeDisconnecting - missedIVersionMessages) <= 0) {
+                logger.error("Retry period expired, gateway is down. Disconneting bridge...");
 
+                if (myCon != null)
                     myCon.requestDisconnection(true);
-                    ret = false;
-                } else {
-                    missedIVersionMessages++;
-                }
+                ret = false;
             } else {
-                logger.debug("Network sanity check: PASSED");
-                missedIVersionMessages = 0;
+                missedIVersionMessages++;
             }
-            iVersionMessageArrived = false;
+        } else {
+            logger.debug("Network sanity check: PASSED");
+            missedIVersionMessages = 0;
         }
+        iVersionMessageArrived = false;
+
         return ret;
     }
 
     private void reset() {
-        synchronized (missedIVersionMessages) {
-            iVersionMessageArrived = false;
-            missedIVersionMessages = 0;
-            missingHearbeatsMap = new HashMap<>();
-        }
+        iVersionMessageArrived = false;
+        missedIVersionMessages = 0;
+        missingHeartbeatsMap.clear();
     }
 
     @Override
-    public void messageReceived(MySensorsMessage message) throws Exception {
-        synchronized (missedIVersionMessages) {
-            if (!iVersionMessageArrived) {
-                if (message.isIVersionMessage()) {
-                    iVersionMessageArrived = true;
-                }
+    public void messageReceived(@Nullable MySensorsMessage message) {
+        if (!iVersionMessageArrived) {
+            if (message != null && message.isIVersionMessage()) {
+                iVersionMessageArrived = true;
             }
         }
 
-        synchronized (missingHearbeatsMap) {
-            if (message.isHeartbeatResponseMessage()) {
-                // -1 in means missingHearbeatsMap means: "ok, heartbeat response received"
-                missingHearbeatsMap.put(message.getNodeId(), -1);
-            }
+        if (message != null && message.isHeartbeatResponseMessage()) {
+            // -1 in means missingHearbeatsMap means: "ok, heartbeat response received"
+            missingHeartbeatsMap.put(message.getNodeId(), -1);
         }
     }
 }

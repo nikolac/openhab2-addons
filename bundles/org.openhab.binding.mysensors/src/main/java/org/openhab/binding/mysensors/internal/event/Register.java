@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.event;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 import java.util.EventListener;
 import java.util.List;
 
@@ -22,6 +24,7 @@ import java.util.List;
  *
  * @param <T> the EventListener to register
  */
+@NonNullByDefault
 public interface Register<T extends EventListener> {
 
     /**

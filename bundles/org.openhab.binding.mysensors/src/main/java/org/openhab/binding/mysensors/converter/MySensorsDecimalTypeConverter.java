@@ -12,7 +12,6 @@
  */
 package org.openhab.binding.mysensors.converter;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.types.State;
@@ -27,7 +26,7 @@ import org.openhab.core.types.State;
 public class MySensorsDecimalTypeConverter implements MySensorsTypeConverter {
 
     @Override
-    public State fromString(@NonNull String string) {
+    public State fromString(String string) {
         return new DecimalType(string);
     }
 }

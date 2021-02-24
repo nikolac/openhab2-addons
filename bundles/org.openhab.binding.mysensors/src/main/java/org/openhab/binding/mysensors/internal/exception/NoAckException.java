@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception occurs if there is an error in
  * the ack message that was received by the gateway
@@ -19,6 +21,7 @@ package org.openhab.binding.mysensors.internal.exception;
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class NoAckException extends Exception {
     private static final long serialVersionUID = -4446354274423342464L;
 

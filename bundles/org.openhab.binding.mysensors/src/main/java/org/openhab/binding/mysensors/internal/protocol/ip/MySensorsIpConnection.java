@@ -12,14 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.ip;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.UnknownHostException;
-
-import org.apache.commons.lang.StringUtils;
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
 import org.openhab.binding.mysensors.internal.gateway.MySensorsGatewayConfig;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
  * Implements the TCP/IP connection to the ethernet gateway of the MySensors network.
@@ -28,8 +29,9 @@ import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnecti
  * @author Tim Oberföll - Redesign
  *
  */
+@NonNullByDefault
 public class MySensorsIpConnection extends MySensorsAbstractConnection {
-
+    @Nullable
     private Socket sock = null;
 
     public MySensorsIpConnection(MySensorsGatewayConfig myConf, MySensorsEventRegister myEventRegister) {
@@ -42,27 +44,20 @@ public class MySensorsIpConnection extends MySensorsAbstractConnection {
     @Override
     public boolean establishConnection() {
         logger.debug("Connecting to IP bridge [{}:{}]", myGatewayConfig.getIpAddress(), myGatewayConfig.getTcpPort());
+        try {
+            sock = new Socket(myGatewayConfig.getIpAddress(), myGatewayConfig.getTcpPort());
+            mysConReader = new MySensorsReader(sock.getInputStream());
+            mysConWriter = new MySensorsWriter(sock.getOutputStream());
 
-        boolean ret = false;
-
-        if (StringUtils.isNotEmpty(myGatewayConfig.getIpAddress())) {
-            try {
-                sock = new Socket(myGatewayConfig.getIpAddress(), myGatewayConfig.getTcpPort());
-                mysConReader = new MySensorsReader(sock.getInputStream());
-                mysConWriter = new MySensorsWriter(sock.getOutputStream());
-
-                ret = startReaderWriterThread(mysConReader, mysConWriter);
-            } catch (UnknownHostException e) {
-                logger.error("Error while trying to connect to: {}:{}", myGatewayConfig.getIpAddress(),
-                        myGatewayConfig.getTcpPort(), e);
-            } catch (IOException e) {
-                logger.error("Error while trying to connect InputStreamReader", e);
-            }
-        } else {
-            logger.error("IP must be not null/empty");
+            return startReaderWriterThread(mysConReader, mysConWriter);
+        } catch (UnknownHostException e) {
+            logger.error("Error while trying to connect to: {}:{}", myGatewayConfig.getIpAddress(),
+                    myGatewayConfig.getTcpPort(), e);
+            return false;
+        } catch (IOException e) {
+            logger.error("Error while trying to connect InputStreamReader", e);
+            return false;
         }
-
-        return ret;
     }
 
     /**

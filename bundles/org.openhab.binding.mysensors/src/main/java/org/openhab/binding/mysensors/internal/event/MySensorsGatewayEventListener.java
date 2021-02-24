@@ -14,6 +14,8 @@ package org.openhab.binding.mysensors.internal.event;
 
 import java.util.EventListener;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
@@ -29,13 +31,14 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
  * @author Andrea Cioni - Redesign
  *
  */
+@NonNullByDefault
 public interface MySensorsGatewayEventListener extends EventListener {
 
     /**
      * Triggered when gateway reserve (and send) an ID for a new network device.
      * A new ,empty, device is created before this method is triggered
      */
-    public default void nodeIdReservationDone(Integer reservedId) throws Exception {
+    default void nodeIdReservationDone(@Nullable Integer reservedId) throws Exception {
     }
 
     /**
@@ -43,7 +46,7 @@ public interface MySensorsGatewayEventListener extends EventListener {
      * A new ,empty, device is created before this method is triggered. Only if presentation message received, and so a
      * description for a child is available, @child is not null.
      */
-    public default void newNodeDiscovered(MySensorsNode node, MySensorsChild child) throws Exception {
+    default void newNodeDiscovered(@Nullable MySensorsNode node, @Nullable MySensorsChild child) throws Exception {
     }
 
     /**
@@ -54,8 +57,8 @@ public interface MySensorsGatewayEventListener extends EventListener {
      * -BATTERY indicate that a battery update message was received for a node ( @child and @variable are null in this
      * case)
      */
-    public default void sensorUpdateEvent(MySensorsNode node, MySensorsChild child, MySensorsVariable var,
-            MySensorsNodeUpdateEventType updateType) throws Exception {
+    default void sensorUpdateEvent(@Nullable MySensorsNode node, @Nullable MySensorsChild child,
+            @Nullable MySensorsVariable var, @Nullable MySensorsNodeUpdateEventType updateType) throws Exception {
     }
 
     /**
@@ -63,20 +66,20 @@ public interface MySensorsGatewayEventListener extends EventListener {
      * Reachability changes when connection go down or NetworkSanityChecker tells us the
      * device is not responding
      */
-    public default void nodeReachStatusChanged(MySensorsNode node, boolean reach) throws Exception {
+    default void nodeReachStatusChanged(@Nullable MySensorsNode node, boolean reach) throws Exception {
     }
 
     /**
      * Procedure to notify new message from MySensorsNetwork.
      * Internally, MySensorsGateway, handle this event and update channel state if message is sent to a known node.
      */
-    public default void messageReceived(MySensorsMessage message) throws Exception {
+    default void messageReceived(@Nullable MySensorsMessage message) throws Exception {
     }
 
     /**
      * Triggered when connection update its status
      */
-    public default void connectionStatusUpdate(MySensorsAbstractConnection connection, boolean connected)
+    default void connectionStatusUpdate(@Nullable MySensorsAbstractConnection connection, boolean connected)
             throws Exception {
     }
 
@@ -84,6 +87,6 @@ public interface MySensorsGatewayEventListener extends EventListener {
      * Triggered when one message, that request ack, hasn't received any confirmation.
      * Internally, MySensorsGateway, handle this event and restore channel state.
      */
-    public default void ackNotReceived(MySensorsMessage msg) throws Exception {
+    default void ackNotReceived(@Nullable MySensorsMessage msg) throws Exception {
     }
 }

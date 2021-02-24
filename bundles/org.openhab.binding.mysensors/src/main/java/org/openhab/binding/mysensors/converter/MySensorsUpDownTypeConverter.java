@@ -12,8 +12,8 @@
  */
 package org.openhab.binding.mysensors.converter;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.MySensorsBindingConstants;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageSubType;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
@@ -34,7 +34,7 @@ import org.openhab.core.types.State;
 public class MySensorsUpDownTypeConverter implements MySensorsTypeConverter {
 
     @Override
-    public MySensorsMessageSubType typeFromChannelCommand(@NonNull String channel, @NonNull Command command) {
+    public MySensorsMessageSubType typeFromChannelCommand(String channel, Command command) {
         if (channel.equals(MySensorsBindingConstants.CHANNEL_COVER)) {
             if (command instanceof UpDownType) {
                 if (command == UpDownType.UP) {
@@ -54,13 +54,19 @@ public class MySensorsUpDownTypeConverter implements MySensorsTypeConverter {
     }
 
     @Override
-    public State stateFromChannel(@NonNull MySensorsVariable value) {
+    public State stateFromChannel(MySensorsVariable value) {
         if (value.getType() == MySensorsMessageSubType.V_DOWN) {
             return UpDownType.DOWN;
         } else if (value.getType() == MySensorsMessageSubType.V_UP) {
             return UpDownType.UP;
         } else if (value.getType() == MySensorsMessageSubType.V_PERCENTAGE) {
-            return new PercentType(value.getValue());
+            @Nullable
+            String actualValue = value.getValue();
+            if (actualValue != null) {
+                return new PercentType(actualValue);
+            } else {
+                throw new IllegalArgumentException("Cannot set stateFromChannel because V_PERCENTAGE has null value");
+            }
         } else {
             throw new IllegalArgumentException("Variable " + value.getType() + " is not up/down or percent type");
         }
@@ -81,7 +87,7 @@ public class MySensorsUpDownTypeConverter implements MySensorsTypeConverter {
         } else {
             throw new IllegalStateException(
                     "UpDown/Percent command are the only one command allowed by this adapter, passed: " + state + "("
-                            + (state != null ? state.getClass() : "") + ")");
+                            + (state.getClass()) + ")");
         }
     }
 

@@ -18,16 +18,13 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.text.ParseException;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
 import org.openhab.binding.mysensors.internal.gateway.MySensorsGatewayConfig;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
-import org.openhab.core.io.transport.mqtt.MqttActionCallback;
-import org.openhab.core.io.transport.mqtt.MqttBrokerConnection;
-import org.openhab.core.io.transport.mqtt.MqttConnectionObserver;
-import org.openhab.core.io.transport.mqtt.MqttConnectionState;
-import org.openhab.core.io.transport.mqtt.MqttMessageSubscriber;
-import org.openhab.core.io.transport.mqtt.MqttService;
+import org.openhab.core.io.transport.mqtt.*;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
@@ -35,24 +32,32 @@ import org.osgi.framework.ServiceReference;
 /**
  * Implements the MQTT connection to a gateway of the MySensors network.
  *
- * @author Tim Oberföll
- * @author Sean McGuire
+ * @author Tim Oberföll - Initial contribution
+ * @author Sean McGuire - Redesign
  *
  */
-
+@NonNullByDefault
 public class MySensorsMqttConnection extends MySensorsAbstractConnection implements MqttConnectionObserver {
 
-    private MySensorsMqttSubscriber myMqttSub;
+    private final MySensorsMqttSubscriber myMqttSub;
+
+    @Nullable
     private MqttBrokerConnection connection;
 
-    private PipedOutputStream out;
-    private PipedInputStream in;
+    private PipedOutputStream out = new PipedOutputStream();
 
-    private MySensorsMqttPublishCallback myMqttPublishCallback = new MySensorsMqttPublishCallback();
+    private PipedInputStream in = new PipedInputStream();
+
+    private final MySensorsMqttPublishCallback myMqttPublishCallback = new MySensorsMqttPublishCallback();
 
     public MySensorsMqttConnection(MySensorsGatewayConfig myGatewayConfig, MySensorsEventRegister myEventRegister) {
         super(myGatewayConfig, myEventRegister);
-        myMqttSub = new MySensorsMqttSubscriber(myGatewayConfig.getTopicSubscribe());
+        @Nullable
+        String topic = myGatewayConfig.getTopicSubscribe();
+        if (topic == null) {
+            throw new IllegalArgumentException("Tried to create MQTT Connection with null subscript topic");
+        }
+        myMqttSub = new MySensorsMqttSubscriber(topic);
     }
 
     /**
@@ -60,7 +65,7 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
      */
     @Override
     protected boolean establishConnection() {
-        boolean connectionEstablished = false;
+        boolean connectionEstablished;
 
         // ## Start workaround
         if (MySensorsMqttService.getMqttService() == null) {
@@ -92,13 +97,18 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
         mysConWriter = new MySensorsMqttWriter(new OutputStream() {
 
             @Override
-            public void write(int b) throws IOException {
+            public void write(int b) {
             }
         });
-        connection = MySensorsMqttService.getMqttService().getBrokerConnection(myGatewayConfig.getBrokerName());
+
+        @Nullable
+        String brokerName = myGatewayConfig.getBrokerName();
+
+        if (brokerName != null)
+            connection = MySensorsMqttService.getMqttService().getBrokerConnection(brokerName);
 
         if (connection == null) {
-            logger.error("No connection to broker: {}", myGatewayConfig.getBrokerName());
+            logger.error("No connection to broker: {}", brokerName);
             return false;
         }
 
@@ -119,9 +129,17 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
      */
     @Override
     protected void stopConnection() {
-        in = null;
-        out = null;
-        connection.unsubscribe(myMqttSub.getTopic(), myMqttSub);
+        if (connection != null) {
+            try {
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                logger.error("Exception while trying to stop MQTT Connection", e);
+            }
+            connection.unsubscribe(myMqttSub.getTopic(), myMqttSub);
+        } else {
+            logger.warn("Tried to stop null MQTT connection");
+        }
     }
 
     /**
@@ -131,23 +149,29 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
      * @author Sean McGuire
      * @author Tim Oberföll
      */
+    @NonNullByDefault
     public class MySensorsMqttSubscriber implements MqttMessageSubscriber {
+
         private String topicSubscribe;
 
         public MySensorsMqttSubscriber(String topicSubscribe) {
+            this.topicSubscribe = topicSubscribe;
             setTopic(topicSubscribe);
         }
 
         @Override
         public void processMessage(String topic, byte[] payload) {
-            if (!isConnected() || out == null) {
+            if (!isConnected()) {
                 logger.error("Not connected - Messages can not be processed");
                 return;
             }
 
+            @Nullable
+            String subscribeTopic = myGatewayConfig.getTopicSubscribe();
+
             String payloadString = new String(payload);
             logger.debug("MQTT message received. Topic: {}, Message: {}", topic, payloadString);
-            if (topic.indexOf(myGatewayConfig.getTopicSubscribe()) == 0) {
+            if (subscribeTopic != null && topic.indexOf(subscribeTopic) == 0) {
                 String messageTopicPart = topic.replace(myGatewayConfig.getTopicSubscribe() + "/", "");
                 logger.debug("Message topic part: {}", messageTopicPart);
                 MySensorsMessage incomingMessage = new MySensorsMessage();
@@ -158,7 +182,7 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
                     try {
                         out.write(MySensorsMessage.generateAPIString(incomingMessage).getBytes());
                     } catch (IOException ioe) {
-                        ioe.toString();
+                        logger.error("IO Exception trying to write incoming message", ioe);
                     }
                 } catch (ParseException pe) {
                     logger.debug("Unable to send message to bridge: {}", pe.toString());
@@ -179,7 +203,7 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
          * @param topicSubscribe topic that should be listened to
          */
         public void setTopic(String topicSubscribe) {
-            if (topicSubscribe.substring(topicSubscribe.length() - 1) != "/") {
+            if (!topicSubscribe.endsWith("/")) {
                 topicSubscribe += "/";
             }
             this.topicSubscribe = topicSubscribe + "+/+/+/+/+";
@@ -192,21 +216,32 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
      * @author Tim Oberföll
      *
      */
+    @NonNullByDefault
     protected class MySensorsMqttWriter extends MySensorsWriter {
-        MqttBrokerConnection conn = MySensorsMqttService.getMqttService()
-                .getBrokerConnection(myGatewayConfig.getBrokerName());
+        @Nullable
+        private MqttBrokerConnection conn;
 
         public MySensorsMqttWriter(OutputStream outStream) {
             super(outStream);
+            @Nullable
+            String brokerName = myGatewayConfig.getBrokerName();
+            assert MySensorsMqttService.getMqttService() != null;
+            if (brokerName != null)
+                conn = MySensorsMqttService.getMqttService().getBrokerConnection(brokerName);
         }
 
         @Override
-        protected void sendMessage(String msg) {
+        protected void sendMessage(@Nullable String msg) {
+            if (msg == null) {
+                logger.warn("Tried to send null msg");
+                return;
+            }
             logger.debug("Sending MQTT Message: Topic: {}, Message: {}", myGatewayConfig.getTopicPublish(), msg.trim());
 
             try {
                 MySensorsMessage msgOut = MySensorsMessage.parse(msg);
                 String newTopic = myGatewayConfig.getTopicPublish() + "/" + MySensorsMessage.generateMQTTString(msgOut);
+                assert conn != null;
                 conn.publish(newTopic, msgOut.getMsg().getBytes(), 0, false).whenComplete((m, t) -> {
                     if (t == null) {
                         myMqttPublishCallback.onSuccess(newTopic);
@@ -221,7 +256,7 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
     }
 
     @Override
-    public void connectionStateChanged(MqttConnectionState state, Throwable error) {
+    public void connectionStateChanged(MqttConnectionState state, @Nullable Throwable error) {
         if (state == MqttConnectionState.CONNECTED) {
             logger.debug("Connected to MQTT broker!");
         } else {

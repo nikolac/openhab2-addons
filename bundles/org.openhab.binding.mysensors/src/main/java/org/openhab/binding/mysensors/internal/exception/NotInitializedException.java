@@ -12,12 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.exception;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * Exception occurs if the state of a thing is not yet initialized.
  *
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class NotInitializedException extends Exception {
     private static final long serialVersionUID = -1441354134423131361L;
 

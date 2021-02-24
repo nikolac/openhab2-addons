@@ -36,8 +36,6 @@ import org.slf4j.LoggerFactory;
 @NonNullByDefault
 public class MySensorsChildSColorSensor extends MySensorsChild {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
     public MySensorsChildSColorSensor(int childId) {
         super(childId);
         setPresentationCode(MySensorsMessageSubType.S_COLOR_SENSOR);
@@ -49,6 +47,7 @@ public class MySensorsChildSColorSensor extends MySensorsChild {
             addVariable(new MySensorsVariableVVar4());
             addVariable(new MySensorsVariableVVar5());
         } catch (NoContentException e) {
+            Logger logger = LoggerFactory.getLogger(getClass());
             logger.debug("No content to add: ", e);
         }
     }

@@ -17,8 +17,11 @@ import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.handler.MySensorsBridgeHandler;
 import org.openhab.binding.mysensors.internal.event.MySensorsGatewayEventListener;
+import org.openhab.binding.mysensors.internal.gateway.MySensorsGateway;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
 import org.openhab.core.config.discovery.AbstractDiscoveryService;
@@ -36,11 +39,12 @@ import org.slf4j.LoggerFactory;
  * @author Tim Oberföll - Initial contribution
  *
  */
+@NonNullByDefault
 public class MySensorsDiscoveryService extends AbstractDiscoveryService implements MySensorsGatewayEventListener {
 
-    private Logger logger = LoggerFactory.getLogger(MySensorsDiscoveryService.class);
+    private final Logger logger = LoggerFactory.getLogger(MySensorsDiscoveryService.class);
 
-    private MySensorsBridgeHandler bridgeHandler = null;
+    private final MySensorsBridgeHandler bridgeHandler;
 
     public MySensorsDiscoveryService(MySensorsBridgeHandler bridgeHandler) {
         super(SUPPORTED_THING_TYPES_UIDS, 500, true);
@@ -50,7 +54,13 @@ public class MySensorsDiscoveryService extends AbstractDiscoveryService implemen
     @Override
     protected void startScan() {
         logger.debug("Starting MySensors discovery scan");
-        bridgeHandler.getMySensorsGateway().addEventListener(this);
+        @Nullable
+        MySensorsGateway gw = bridgeHandler.getMySensorsGateway();
+        if (gw != null) {
+            gw.addEventListener(this);
+        } else {
+            logger.warn("Can't start scanning for discovery with null gateway");
+        }
     }
 
     public void activate() {
@@ -65,7 +75,12 @@ public class MySensorsDiscoveryService extends AbstractDiscoveryService implemen
     @Override
     protected void stopScan() {
         logger.debug("Stopping MySensors discovery scan");
-        bridgeHandler.getMySensorsGateway().removeEventListener(this);
+        @Nullable
+        MySensorsGateway gw = bridgeHandler.getMySensorsGateway();
+
+        if (gw != null) {
+            gw.removeEventListener(this);
+        }
     }
 
     @Override
@@ -82,14 +97,14 @@ public class MySensorsDiscoveryService extends AbstractDiscoveryService implemen
      * Gets called if message from the MySensors network was received.
      * Distinguishes if a new thing was discovered.
      *
-     * @param msg MySensors message received from the bridge / gateway.
+     *
      */
-    public void newDevicePresented(MySensorsNode node, MySensorsChild child) {
+    public void newDevicePresented(@Nullable MySensorsNode node, @Nullable MySensorsChild child) {
         /*
          * If a message was received from a not known node, which is not a
          * presentation message, we don't do anything!
          */
-        if (child != null) {
+        if (child != null && node != null) {
             // uid must not contains dots
             ThingTypeUID thingUid = THING_UID_MAP.get(child.getPresentationCode());
 
@@ -112,11 +127,17 @@ public class MySensorsDiscoveryService extends AbstractDiscoveryService implemen
                 logger.warn("Cannot automatic discover thing node: {}, child: {} please insert it manually",
                         node.getNodeId(), child.getChildId());
             }
+        } else {
+            logger.warn("Cannot present device with null node or child");
         }
     }
 
     @Override
-    public void newNodeDiscovered(MySensorsNode node, MySensorsChild child) throws Exception {
-        newDevicePresented(node, child);
+    public void newNodeDiscovered(@Nullable MySensorsNode node, @Nullable MySensorsChild child) {
+        if (node != null && child != null) {
+            newDevicePresented(node, child);
+        } else {
+            logger.warn("Cannot discover null node and/or child");
+        }
     }
 }
