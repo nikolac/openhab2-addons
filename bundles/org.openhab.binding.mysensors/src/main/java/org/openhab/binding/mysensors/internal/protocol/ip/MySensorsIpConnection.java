@@ -12,15 +12,15 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.ip;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
 import org.openhab.binding.mysensors.internal.gateway.MySensorsGatewayConfig;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
-
-import java.io.IOException;
-import java.net.Socket;
-import java.net.UnknownHostException;
 
 /**
  * Implements the TCP/IP connection to the ethernet gateway of the MySensors network.

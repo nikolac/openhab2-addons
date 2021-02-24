@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.event;
 
+import java.util.List;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.protocol.MySensorsAbstractConnection;
@@ -21,8 +23,6 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 /**
  * Event register is used to notify registered things about updates

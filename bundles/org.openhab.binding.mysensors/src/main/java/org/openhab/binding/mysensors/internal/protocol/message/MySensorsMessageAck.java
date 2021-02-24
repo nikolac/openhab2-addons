@@ -36,7 +36,7 @@ public enum MySensorsMessageAck {
         return id;
     }
 
-    private static final Map<Integer, MySensorsMessageAck> ID = new HashMap<Integer, MySensorsMessageAck>();
+    private static final Map<Integer, MySensorsMessageAck> ID = new HashMap<>();
     static {
         for (MySensorsMessageAck e : MySensorsMessageAck.values()) {
             if (ID.put(e.getId(), e) != null) {

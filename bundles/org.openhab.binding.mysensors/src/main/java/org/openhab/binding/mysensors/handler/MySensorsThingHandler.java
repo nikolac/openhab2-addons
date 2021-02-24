@@ -53,7 +53,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private MySensorsSensorConfiguration configuration = getConfigAs(MySensorsSensorConfiguration.class);
+    private final MySensorsSensorConfiguration configuration = getConfigAs(MySensorsSensorConfiguration.class);
 
     private @Nullable DateTimeType lastUpdate;
 

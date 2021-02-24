@@ -94,7 +94,7 @@ public class MySensorsNetworkSanityChecker implements MySensorsGatewayEventListe
             futureSanityChk = scheduler.scheduleWithFixedDelay(this, scheduleMinuteDelay, scheduleMinuteDelay,
                     TimeUnit.MINUTES);
         } else {
-            logger.warn("Network Sanity Checker is alredy running");
+            logger.warn("Network Sanity Checker is already running");
         }
     }
 

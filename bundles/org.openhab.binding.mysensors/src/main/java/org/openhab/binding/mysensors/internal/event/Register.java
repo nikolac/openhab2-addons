@@ -12,10 +12,10 @@
  */
 package org.openhab.binding.mysensors.internal.event;
 
-import org.eclipse.jdt.annotation.NonNullByDefault;
-
 import java.util.EventListener;
 import java.util.List;
+
+import org.eclipse.jdt.annotation.NonNullByDefault;
 
 /**
  * Generic interface for an EventListener register
