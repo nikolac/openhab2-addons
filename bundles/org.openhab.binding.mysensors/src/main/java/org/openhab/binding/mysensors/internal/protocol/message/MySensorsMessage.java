@@ -12,12 +12,12 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.message;
 
-import java.text.ParseException;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
+
+import java.text.ParseException;
 
 /**
  * Used to store the content of a MySensors message.
@@ -41,7 +41,7 @@ public class MySensorsMessage {
     private boolean revert = false;
     private MySensorsMessageSubType subType = MySensorsMessageSubType.I_DEBUG;
     private String msg = "";
-    private int retries = -1;
+    private int retries = 0;
     private long nextSend = -1;
     private boolean smartSleep = false;
     private MySensorsMessageDirection direction = MySensorsMessageDirection.OUTGOING;
