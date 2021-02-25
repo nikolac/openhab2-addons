@@ -89,8 +89,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
             myGateway.addEventListener(this);
 
             logger.debug("Initialization of the MySensors bridge {} DONE!", getThing().getUID());
-            if (discoveryService != null)
-                discoveryService.activate();
+
             updateStatus(ThingStatus.ONLINE);
         } else {
             logger.error("Failed to initialize MySensors bridge {}", getThing().getUID());
@@ -134,6 +133,8 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
     public void connectionStatusUpdate(@Nullable MySensorsAbstractConnection connection, boolean connected) {
         if (connected) {
             updateStatus(ThingStatus.ONLINE);
+            if (discoveryService != null)
+                discoveryService.activate();
         } else {
             updateStatus(ThingStatus.OFFLINE);
         }

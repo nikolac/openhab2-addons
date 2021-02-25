@@ -12,6 +12,11 @@
  */
 package org.openhab.binding.mysensors.discovery;
 
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.handler.MySensorsBridgeHandler;
@@ -26,11 +31,6 @@ import org.openhab.core.thing.ThingTypeUID;
 import org.openhab.core.thing.ThingUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 
 /**
  * Discovery service for MySensors devices. Starts DiscoveryThread to listen for
