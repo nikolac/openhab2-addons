@@ -12,12 +12,12 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.message;
 
+import java.text.ParseException;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
-
-import java.text.ParseException;
 
 /**
  * Used to store the content of a MySensors message.

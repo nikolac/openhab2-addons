@@ -12,6 +12,13 @@
  */
 package org.openhab.binding.mysensors.internal.gateway;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
@@ -26,13 +33,6 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNodeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Regulary checks the status of the link to the gateway to the MySensors network.

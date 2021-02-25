@@ -71,9 +71,9 @@ public class MySensorsChildConfig implements Mergeable {
 
         MySensorsChildConfig childConfig = (MySensorsChildConfig) o;
 
-        requestAck |= childConfig.requestAck;
-        revertState |= childConfig.revertState;
-        smartSleep |= childConfig.smartSleep;
+        requestAck = childConfig.requestAck;
+        revertState = childConfig.revertState;
+        smartSleep = childConfig.smartSleep;
 
         if (expectUpdateTimeout <= 0) {
             expectUpdateTimeout = childConfig.expectUpdateTimeout;

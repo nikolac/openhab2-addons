@@ -59,7 +59,7 @@ public class MySensorsNodeConfig implements Mergeable {
 
         MySensorsNodeConfig nodeConfig = (MySensorsNodeConfig) o;
 
-        requestHeartbeatResponse |= nodeConfig.requestHeartbeatResponse;
+        requestHeartbeatResponse = nodeConfig.requestHeartbeatResponse;
 
         if (expectUpdateTimeout <= 0) {
             expectUpdateTimeout = nodeConfig.expectUpdateTimeout;

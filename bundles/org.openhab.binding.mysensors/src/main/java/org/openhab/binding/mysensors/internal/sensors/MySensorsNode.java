@@ -219,8 +219,8 @@ public class MySensorsNode {
             @Nullable
             MySensorsChild child = getChild(childId);
             if (child == null) {
-                logger.warn("Cannot update variable state of null child");
-                return msg;
+                logger.warn("Cannot update variable state of null child:{}", childId);
+                return null;
             }
             MySensorsChildConfig childConfig = child.getChildConfig();
 

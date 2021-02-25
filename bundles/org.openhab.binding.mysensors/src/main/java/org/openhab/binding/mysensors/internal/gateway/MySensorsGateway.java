@@ -194,6 +194,8 @@ public class MySensorsGateway implements MySensorsGatewayEventListener {
         MySensorsChild child = getChild(nodeId, childId);
         if (child != null) {
             variable = child.getVariable(type);
+        } else {
+            logger.warn("Cannot get variable {} from node:{}, child:{} does not exist", type, nodeId, childId);
         }
 
         return variable;
@@ -229,13 +231,14 @@ public class MySensorsGateway implements MySensorsGatewayEventListener {
             MySensorsNode exist = getNode(node.getNodeId());
 
             if (mergeIfExist && exist != null) {
-                logger.debug("Merging child map: {} with: {}", exist.getChildMap(), node.getChildMap());
+                logger.trace("Merging child map: {} with: {}", exist.getChildMap(), node.getChildMap());
 
                 exist.merge(node);
 
                 logger.trace("Merging result is: {}", exist.getChildMap());
             } else {
-                logger.debug("Adding device {}", node.toString());
+                logger.debug("Adding node {}", node.getNodeId());
+                logger.trace("Adding device {}", node.toString());
                 addNode(node);
             }
         }
@@ -384,7 +387,7 @@ public class MySensorsGateway implements MySensorsGatewayEventListener {
                 myNetSanCheck.stop();
             }
         }
-
+        logger.debug("MySensorsGateway connection status update -connected: {}", connected);
         handleBridgeStatusUpdate(connected);
     }
 

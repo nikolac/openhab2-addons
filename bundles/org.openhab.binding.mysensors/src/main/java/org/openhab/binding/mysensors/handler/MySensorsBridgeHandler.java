@@ -12,13 +12,7 @@
  */
 package org.openhab.binding.mysensors.handler;
 
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.google.gson.reflect.TypeToken;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.config.MySensorsBridgeConfiguration;
@@ -33,16 +27,18 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsChild;
 import org.openhab.binding.mysensors.internal.sensors.MySensorsNode;
 import org.openhab.core.OpenHAB;
 import org.openhab.core.io.transport.serial.SerialPortManager;
-import org.openhab.core.thing.Bridge;
-import org.openhab.core.thing.ChannelUID;
-import org.openhab.core.thing.ThingStatus;
-import org.openhab.core.thing.ThingTypeUID;
+import org.openhab.core.thing.*;
 import org.openhab.core.thing.binding.BaseBridgeHandler;
 import org.openhab.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.reflect.TypeToken;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 
 /**
  * MySensorsBridgeHandler is used to initialize a new bridge (in MySensors: Gateway)
@@ -81,7 +77,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
 
     @Override
     public void initialize() {
-        logger.debug("Initialization of the MySensors bridge");
+        logger.debug("Initialization of the MySensors bridge {}", getThing().getUID());
 
         myBridgeConfiguration = getConfigAs(MySensorsBridgeConfiguration.class);
 
@@ -92,17 +88,18 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
 
             myGateway.addEventListener(this);
 
-            logger.debug("Initialization of the MySensors bridge DONE!");
+            logger.debug("Initialization of the MySensors bridge {} DONE!", getThing().getUID());
             if (discoveryService != null)
                 discoveryService.activate();
+            updateStatus(ThingStatus.ONLINE);
         } else {
-            logger.error("Failed to initialize MySensors bridge");
+            logger.error("Failed to initialize MySensors bridge {}", getThing().getUID());
         }
     }
 
     @Override
     public void dispose() {
-        logger.debug("Disposing of the MySensors bridge");
+        logger.debug("Disposing of the MySensors bridge {}", getThing().getUID());
 
         if (myGateway != null) {
             myGateway.removeEventListener(this);
@@ -110,6 +107,12 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
         }
 
         super.dispose();
+    }
+
+    @Override
+    public void thingUpdated(Thing thing) {
+        logger.debug("MySensorsBridgeHandler thing updated {}", thing.getUID());
+        super.thingUpdated(thing);
     }
 
     @Override
@@ -134,7 +137,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
         } else {
             updateStatus(ThingStatus.OFFLINE);
         }
-
+        logger.debug("Connection status {} updated to {}", getThing().getUID(), connected);
         updateCacheFile();
     }
 
