@@ -12,12 +12,6 @@
  */
 package org.openhab.binding.mysensors.handler;
 
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Map;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.MySensorsBindingConstants;
@@ -41,6 +35,12 @@ import org.openhab.core.types.RefreshType;
 import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Map;
+
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 
 /**
  * The {@link MySensorsThingHandler} is responsible for handling commands, which are
@@ -156,6 +156,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
                 }
             }
         } else {
+            @Nullable
             MySensorsTypeConverter adapter;
 
             // RGB && RGBW only:
@@ -184,12 +185,13 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
 
             logger.trace("Adapter {} found for type {}", adapter.getClass().getSimpleName(), channelUID.getId());
 
+            @Nullable
             MySensorsMessageSubType type = adapter.typeFromChannelCommand(channelUID.getId(), command);
 
             if (type != null) {
                 logger.trace("Type for channel: {}, command: {} of thing {} is: {}", thing.getUID(), command,
                         thing.getUID(), type);
-
+                @Nullable
                 MySensorsVariable var = myGateway.getVariable(configuration.nodeId, configuration.childId, type);
 
                 if (var != null) {
