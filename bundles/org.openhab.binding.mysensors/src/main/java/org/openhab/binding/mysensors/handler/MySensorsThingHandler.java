@@ -12,6 +12,12 @@
  */
 package org.openhab.binding.mysensors.handler;
 
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Map;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.MySensorsBindingConstants;
@@ -35,12 +41,6 @@ import org.openhab.core.types.RefreshType;
 import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Map;
-
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
 
 /**
  * The {@link MySensorsThingHandler} is responsible for handling commands, which are

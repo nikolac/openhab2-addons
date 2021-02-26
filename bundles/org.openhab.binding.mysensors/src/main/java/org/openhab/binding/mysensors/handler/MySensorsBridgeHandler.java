@@ -12,7 +12,13 @@
  */
 package org.openhab.binding.mysensors.handler;
 
-import com.google.gson.reflect.TypeToken;
+import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.config.MySensorsBridgeConfiguration;
@@ -33,12 +39,7 @@ import org.openhab.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.openhab.binding.mysensors.MySensorsBindingConstants.*;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * MySensorsBridgeHandler is used to initialize a new bridge (in MySensors: Gateway)
