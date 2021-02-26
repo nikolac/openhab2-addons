@@ -82,6 +82,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
 
     @Override
     public void dispose() {
+        updateStatus(ThingStatus.OFFLINE);
         if (myGateway != null) {
             myGateway.removeEventListener(this);
 
@@ -91,7 +92,7 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
             logger.warn("Attempted to dispose a null MySensors gateway");
         }
         logger.debug("Disposed of thing {}", getThing().getUID());
-        updateStatus(ThingStatus.OFFLINE);
+
         super.dispose();
     }
 
@@ -113,9 +114,6 @@ public class MySensorsThingHandler extends BaseThingHandler implements MySensors
             } else {
                 logger.warn("Attempted to remove gateway listener on null gateway {}", configuration.toString());
             }
-
-            // the node has the same status of the bridge
-            updateStatus(bridgeStatusInfo.getStatus());
         }
         updateStatus(bridgeStatusInfo.getStatus());
         super.bridgeStatusChanged(bridgeStatusInfo);

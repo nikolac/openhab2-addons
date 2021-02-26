@@ -99,7 +99,7 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
     @Override
     public void dispose() {
         logger.debug("Disposing of the MySensors bridge {}", getThing().getUID());
-
+        updateStatus(ThingStatus.OFFLINE);
         if (myGateway != null) {
             myGateway.removeEventListener(this);
             myGateway.shutdown();
@@ -137,6 +137,8 @@ public class MySensorsBridgeHandler extends BaseBridgeHandler implements MySenso
                 discoveryService.activate();
         } else {
             updateStatus(ThingStatus.OFFLINE);
+            if (discoveryService != null)
+                discoveryService.deactivate();
         }
         logger.debug("Connection status {} updated to {}", getThing().getUID(), connected);
         updateCacheFile();
