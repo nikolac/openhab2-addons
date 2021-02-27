@@ -12,12 +12,6 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.mqtt;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.text.ParseException;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
@@ -28,6 +22,12 @@ import org.openhab.core.io.transport.mqtt.*;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.text.ParseException;
 
 /**
  * Implements the MQTT connection to a gateway of the MySensors network.
@@ -161,11 +161,6 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
 
         @Override
         public void processMessage(String topic, byte[] payload) {
-            if (!isConnected()) {
-                logger.error("Not connected - Messages can not be processed");
-                return;
-            }
-
             @Nullable
             String subscribeTopic = myGatewayConfig.getTopicSubscribe();
 

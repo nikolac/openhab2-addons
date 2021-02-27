@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.mysensors.internal.gateway;
 
+import java.util.*;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
@@ -30,8 +32,6 @@ import org.openhab.binding.mysensors.internal.sensors.MySensorsVariable;
 import org.openhab.core.io.transport.serial.SerialPortManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
 
 /**
  * Main access point of all the function of MySensors Network, some of there are
