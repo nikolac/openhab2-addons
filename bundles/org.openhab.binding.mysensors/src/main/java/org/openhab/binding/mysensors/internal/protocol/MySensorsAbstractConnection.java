@@ -12,13 +12,6 @@
  */
 package org.openhab.binding.mysensors.internal.protocol;
 
-import java.io.*;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.*;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
@@ -27,6 +20,13 @@ import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessage;
 import org.openhab.binding.mysensors.internal.protocol.message.MySensorsMessageDirection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.*;
 
 /**
  * Connection of the bridge (via TCP/IP or serial) to the MySensors network.
@@ -43,7 +43,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
 
     // How often and at which times should the binding retry to send a message if requestAck is true?
     public static final int MYSENSORS_NUMBER_OF_RETRIES = 5;
-    public static final int[] MYSENSORS_RETRY_TIMES_IN_MILLISECONDS = { 0, 100, 500, 1000, 2000 };
+    public static final int[] MYSENSORS_RETRY_TIMES_IN_MILLISECONDS = { 500, 1000, 2000, 4000, 8000 };
 
     // Wait time Arduino reset
     public static final int RESET_TIME_IN_MILLISECONDS = 3000;
@@ -238,6 +238,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
         if (msg.isSmartSleep()) {
             mysConWriter.addMySensorsOutboundSmartSleepMessage(msg);
         } else {
+            logger.debug("Sending MSG by adding to outbound message queue {}", msg.getMsg());
             mysConWriter.addMySensorsOutboundMessage(msg);
         }
     }
@@ -523,6 +524,7 @@ public abstract class MySensorsAbstractConnection implements Runnable {
                                 logger.debug("Sending to MySensors: {}", output.trim());
                                 sendMessage(output);
                             } else {
+                                // Put the message back in the queue, we're not ready to send it
                                 addMySensorsOutboundMessage(msg);
                             }
                         } else {

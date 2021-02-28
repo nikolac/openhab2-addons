@@ -12,6 +12,12 @@
  */
 package org.openhab.binding.mysensors.internal.protocol.mqtt;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.text.ParseException;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.mysensors.internal.event.MySensorsEventRegister;
@@ -22,12 +28,6 @@ import org.openhab.core.io.transport.mqtt.*;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.text.ParseException;
 
 /**
  * Implements the MQTT connection to a gateway of the MySensors network.
@@ -58,6 +58,11 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
             throw new IllegalArgumentException("Tried to create MQTT Connection with null subscript topic");
         }
         myMqttSub = new MySensorsMqttSubscriber(topic);
+        try {
+            in.connect(out);
+        } catch (IOException e1) {
+            logger.error("Exception thrown while trying to connect input stream for MQTT messages! {}", e1.toString());
+        }
     }
 
     /**
@@ -65,9 +70,6 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
      */
     @Override
     protected boolean establishConnection() {
-        boolean connectionEstablished;
-
-        // ## Start workaround
         if (MySensorsMqttService.getMqttService() == null) {
             BundleContext bc = FrameworkUtil.getBundle(getClass()).getBundleContext();
             final ServiceReference sr = bc.getServiceReference(MqttService.class.getName());
@@ -85,22 +87,6 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
             return false;
         }
 
-        out = new PipedOutputStream();
-        in = new PipedInputStream();
-
-        try {
-            in.connect(out);
-        } catch (IOException e1) {
-            logger.error("Exception thrown while trying to connect input stream for MQTT messages! {}", e1.toString());
-        }
-        mysConReader = new MySensorsReader(in);
-        mysConWriter = new MySensorsMqttWriter(new OutputStream() {
-
-            @Override
-            public void write(int b) {
-            }
-        });
-
         @Nullable
         String brokerName = myGatewayConfig.getBrokerName();
 
@@ -112,6 +98,15 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
             return false;
         }
 
+        mysConReader = new MySensorsReader(in);
+        mysConWriter = new MySensorsMqttWriter(new OutputStream() {
+
+            @Override
+            public void write(int b) {
+            }
+        });
+
+        connection.removeConnectionObserver(this);
         connection.addConnectionObserver(this);
 
         connectionStateChanged(connection.connectionState(), null);
@@ -119,9 +114,7 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
         connection.subscribe(myMqttSub.getTopic(), myMqttSub);
         logger.debug("Adding consumer for topic: {}", myMqttSub.getTopic());
 
-        connectionEstablished = startReaderWriterThread(mysConReader, mysConWriter);
-
-        return connectionEstablished;
+        return startReaderWriterThread(mysConReader, mysConWriter);
     }
 
     /**
@@ -130,13 +123,18 @@ public class MySensorsMqttConnection extends MySensorsAbstractConnection impleme
     @Override
     protected void stopConnection() {
         if (connection != null) {
-            try {
-                in.close();
-                out.close();
-            } catch (IOException e) {
-                logger.error("Exception while trying to stop MQTT Connection", e);
-            }
             connection.unsubscribe(myMqttSub.getTopic(), myMqttSub);
+            connection.removeConnectionObserver(this);
+
+            if (mysConWriter != null) {
+                mysConWriter.stopWriting();
+                mysConWriter = null;
+            }
+
+            if (mysConReader != null) {
+                mysConReader.stopReader();
+                mysConReader = null;
+            }
         } else {
             logger.warn("Tried to stop null MQTT connection");
         }

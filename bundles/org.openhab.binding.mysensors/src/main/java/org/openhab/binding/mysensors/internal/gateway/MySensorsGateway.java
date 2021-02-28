@@ -327,6 +327,7 @@ public class MySensorsGateway implements MySensorsGatewayEventListener {
             logger.error("Handling outgoing message throw an exception", e);
         }
         if (myCon != null) {
+            logger.debug("MySensorsGateway sending message {}", getConfiguration().getGatewayType());
             myCon.sendMessage(message);
         }
     }
